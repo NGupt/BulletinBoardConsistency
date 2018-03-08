@@ -5,6 +5,7 @@
  */
 
 #include "communicate.h"
+#include "article.h"
 
 int *
 post_1_svc(char *arg1,  struct svc_req *rqstp)
