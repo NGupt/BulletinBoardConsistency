@@ -15,7 +15,6 @@ static ArticlePool articlePool;
 int *
 post_1_svc(char *content,  struct svc_req *rqstp)
 {
-    std::cout << content << " in post_1_svc" << endl;
     std::string myString(content, strlen(content));
     static int result = 0;
     int now = articlePool.post(myString);

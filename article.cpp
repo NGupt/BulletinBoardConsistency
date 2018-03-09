@@ -21,7 +21,7 @@ ArticlePool::ArticlePool() {
 }
 
 int ArticlePool::storeArticle(string article, int father) {
-    if (father > 0 && father < count) { 
+    if (father > 0 && father <= count) { 
         count++;
         Article *head = articleMap[father];
         Article * now = new Article(count, article);
@@ -37,7 +37,7 @@ int ArticlePool::storeArticle(string article, int father) {
         isHeadArticle.push_back(true);
         return count;
     } else {
-        cout << "Article " << father << " doesn't exist." << endl;
+        //cout << "Article " << father << " doesn't exist." << endl;
     }
     return 0;
 }
@@ -46,7 +46,7 @@ Article* ArticlePool::choose(int index) {
     if (articleMap.find(index) != articleMap.end()) {
         return articleMap[index];
     } else {
-        cout << "Article " << index << " doesn't exist." << endl;
+        //cout << "Article " << index << " doesn't exist." << endl;
         return NULL;
     }
 }
@@ -62,7 +62,7 @@ int ArticlePool::reply(string article, int index) {
     //return the index of the new article
     //the index == 0 if doesn't post successfully
 int ArticlePool::post(string article) {
-    cout << " into articlePool's post "<< endl;
+    //cout << " into articlePool's post "<< endl;
     return storeArticle(article, 0);
 }
 
