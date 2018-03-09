@@ -3,8 +3,8 @@ typedef string str<MAXSTRING>;
 
 struct ArticleContent {
     int index;
-    /*
     str content;
+    /*
     int* nextArticles;
     Article** nextArticles;
     */

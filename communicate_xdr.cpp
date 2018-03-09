@@ -22,6 +22,8 @@ xdr_ArticleContent (XDR *xdrs, ArticleContent *objp)
 
 	 if (!xdr_int (xdrs, &objp->index))
 		 return FALSE;
+	 if (!xdr_str (xdrs, &objp->content))
+		 return FALSE;
 	return TRUE;
 }
 

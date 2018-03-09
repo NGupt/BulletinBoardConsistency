@@ -6,12 +6,15 @@
 
 #include "communicate.h"
 #include "article.h"
+#include "string.h"
+
+ArticlePool articlePool;
 
 int *
-post_1_svc(char *arg1,  struct svc_req *rqstp)
+post_1_svc(char *content,  struct svc_req *rqstp)
 {
-	static int  result;
-
+    std::string myString(content, strlen(content));
+    static int result = articlePool.post(myString);
 	/*
 	 * insert server code here
 	 */
@@ -22,8 +25,9 @@ post_1_svc(char *arg1,  struct svc_req *rqstp)
 char **
 read_1_svc(struct svc_req *rqstp)
 {
-	static char * result;
-
+    string resultStr = articlePool.read();
+	static char * result = new char[resultStr.length() + 1];
+    strcpy(result, resultStr.c_str());
 	/*
 	 * insert server code here
 	 */
@@ -32,10 +36,13 @@ read_1_svc(struct svc_req *rqstp)
 }
 
 ArticleContent *
-choose_1_svc(int arg1,  struct svc_req *rqstp)
+choose_1_svc(int index,  struct svc_req *rqstp)
 {
 	static ArticleContent  result;
-
+    Article * resultArticle = articlePool.choose(index);
+    result.content = new char[resultArticle->content.length() + 1];
+    strcpy(result.content, resultArticle->content.c_str());
+    result.index = resultArticle->index;
 	/*
 	 * insert server code here
 	 */
@@ -44,9 +51,10 @@ choose_1_svc(int arg1,  struct svc_req *rqstp)
 }
 
 int *
-reply_1_svc(char *arg1, int arg2,  struct svc_req *rqstp)
+reply_1_svc(char *content, int index,  struct svc_req *rqstp)
 {
-	static int  result;
+    string resultStr(content, strlen(content));
+	static int  result = articlePool.reply(resultStr, index);
 
 	/*
 	 * insert server code here
