@@ -4,9 +4,11 @@
  * as a guideline for developing your own functions.
  */
 
+#include <iostream>
 #include "communicate.h"
 #include "article.h"
 #include "string.h"
+using namespace std;
 
 ArticlePool articlePool;
 
@@ -15,6 +17,8 @@ post_1_svc(char *content,  struct svc_req *rqstp)
 {
     std::string myString(content, strlen(content));
     static int result = articlePool.post(myString);
+    cout << result << " " << content << endl;
+    
 	/*
 	 * insert server code here
 	 */
@@ -31,7 +35,8 @@ read_1_svc(struct svc_req *rqstp)
 	/*
 	 * insert server code here
 	 */
-
+    cout << "read from server." << endl;
+    cout << result << endl;
 	return &result;
 }
 
@@ -47,6 +52,7 @@ choose_1_svc(int index,  struct svc_req *rqstp)
 	 * insert server code here
 	 */
 
+    cout << result.index << " " << result.content << endl;
 	return &result;
 }
 
@@ -54,11 +60,12 @@ int *
 reply_1_svc(char *content, int index,  struct svc_req *rqstp)
 {
     string resultStr(content, strlen(content));
-	static int  result = articlePool.reply(resultStr, index);
+	static int result = articlePool.reply(resultStr, index);
 
 	/*
 	 * insert server code here
 	 */
 
+    cout << result << " " << resultStr << endl;
 	return &result;
 }
