@@ -17,12 +17,12 @@ string intToStr(int x) {
 Article::Article(int id, string article): content(article), index(id) {}
 
 ArticlePool::ArticlePool() {
-        count = 0;
+    count = 0;
 }
 
 int ArticlePool::storeArticle(string article, int father) {
-    count++;
     if (father > 0 && father < count) { 
+        count++;
         Article *head = articleMap[father];
         Article * now = new Article(count, article);
         head->nextArticles.push_back(now);
@@ -31,6 +31,7 @@ int ArticlePool::storeArticle(string article, int father) {
         return count;
     }
     else if (father == 0) {
+        count++;
         Article *now = new Article(count, article);
         articleMap[count] = now;
         isHeadArticle.push_back(true);
@@ -42,59 +43,60 @@ int ArticlePool::storeArticle(string article, int father) {
 }
 
 Article* ArticlePool::choose(int index) {
-        if (articleMap.find(index) != articleMap.end()) {
-            return articleMap[index];
-        } else {
-            cout << "Article " << index << " doesn't exist." << endl;
-            return NULL;
-        }
+    if (articleMap.find(index) != articleMap.end()) {
+        return articleMap[index];
+    } else {
+        cout << "Article " << index << " doesn't exist." << endl;
+        return NULL;
     }
+}
 
     //reply to article with index
     //return the index of the new article
     //the index == 0 if doesn't post successfully
 int ArticlePool::reply(string article, int index) { 
-        return storeArticle(article, index);
-    }
+    return storeArticle(article, index);
+}
 
     //post an article
     //return the index of the new article
     //the index == 0 if doesn't post successfully
 int ArticlePool::post(string article) {
-        return storeArticle(article, 0);
-    }
+    cout << " into articlePool's post "<< endl;
+    return storeArticle(article, 0);
+}
 
 void ArticlePool::getArticleContent(string & articles, Article *now, int level) {
-        string currentLine = "";
-        for (int i = 0; i < 4 * level; i++) {
-            currentLine.push_back(' ');
-        }
-        currentLine += intToStr(now->index);
+    string currentLine = "";
+    for (int i = 0; i < 4 * level; i++) {
         currentLine.push_back(' ');
-        currentLine += now->content;
-        articles += currentLine;
-        articles.push_back('\n');
-        for (int i = 0; i < now->nextArticles.size(); i++) {
-            getArticleContent(articles, now->nextArticles[i], level + 1);
-        }
     }
+    currentLine += intToStr(now->index);
+    currentLine.push_back(' ');
+    currentLine += now->content;
+    articles += currentLine;
+    articles.push_back('\n');
+    for (int i = 0; i < now->nextArticles.size(); i++) {
+        getArticleContent(articles, now->nextArticles[i], level + 1);
+    }
+}
 
 
     //read the content of article
 string ArticlePool::read() {
-        string articles = "";
-        for (int i = 1; i <= count; i++) {
-            if (isHeadArticle[i - 1]) {
-                Article * now = articleMap[i];
-                getArticleContent(articles, now, 0);
-            }
+    string articles = "";
+    for (int i = 1; i <= count; i++) {
+        if (isHeadArticle[i - 1]) {
+            Article * now = articleMap[i];
+            getArticleContent(articles, now, 0);
         }
-        return articles;
     }
+    return articles;
+}
 
 int ArticlePool::getCount() {
-        return count;
-    }
+    return count;
+}
 
 //int main() {
 //    ArticlePool articlePool;

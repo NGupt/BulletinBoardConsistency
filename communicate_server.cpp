@@ -10,14 +10,22 @@
 #include "string.h"
 using namespace std;
 
-ArticlePool articlePool;
+static ArticlePool articlePool;
 
 int *
 post_1_svc(char *content,  struct svc_req *rqstp)
 {
+    std::cout << content << " in post_1_svc" << endl;
     std::string myString(content, strlen(content));
-    static int result = articlePool.post(myString);
-    cout << result << " " << content << endl;
+    static int result = 0;
+    int now = articlePool.post(myString);
+    result = now;
+    if (result == 0) {
+        cout << "Post fails. " << endl;
+    } else {
+        cout << "Post an article:" << endl;
+        cout << result << " " << content << endl;
+    }
     
 	/*
 	 * insert server code here
@@ -29,13 +37,13 @@ post_1_svc(char *content,  struct svc_req *rqstp)
 char **
 read_1_svc(struct svc_req *rqstp)
 {
+	static char * result = new char[MAXSTRING];
     string resultStr = articlePool.read();
-	static char * result = new char[resultStr.length() + 1];
     strcpy(result, resultStr.c_str());
 	/*
 	 * insert server code here
 	 */
-    cout << "read from server." << endl;
+    cout << "Read from server:" << endl;
     cout << result << endl;
 	return &result;
 }
@@ -44,15 +52,21 @@ ArticleContent *
 choose_1_svc(int index,  struct svc_req *rqstp)
 {
 	static ArticleContent  result;
+    result.content = new char[MAXSTRING];
     Article * resultArticle = articlePool.choose(index);
-    result.content = new char[resultArticle->content.length() + 1];
-    strcpy(result.content, resultArticle->content.c_str());
-    result.index = resultArticle->index;
 	/*
 	 * insert server code here
 	 */
-
-    cout << result.index << " " << result.content << endl;
+    if (resultArticle == NULL) {
+        strcpy(result.content, "");
+        result.index = 0;
+        cout << "The article with id " << index << " doesn't exist in the server." << endl;
+    } else {
+        strcpy(result.content, resultArticle->content.c_str());
+        result.index = resultArticle->index;
+        cout << "The client choose the article: " << endl;
+        cout << result.index << " " << result.content << endl;
+    }
 	return &result;
 }
 
@@ -60,12 +74,19 @@ int *
 reply_1_svc(char *content, int index,  struct svc_req *rqstp)
 {
     string resultStr(content, strlen(content));
-	static int result = articlePool.reply(resultStr, index);
+	static int result = 0;
+    int now = articlePool.reply(resultStr, index);
+    result = now;
+    if (result == 0) {
+        cout << "Can't reply to article with id " << index << "." << endl;
+    } else {
+        cout << "Reply article " << index << " with:";
+        cout << result << " " << resultStr << endl;
+    }
 
 	/*
 	 * insert server code here
 	 */
 
-    cout << result << " " << resultStr << endl;
 	return &result;
 }

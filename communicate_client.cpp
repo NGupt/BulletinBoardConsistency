@@ -12,13 +12,13 @@ class Client {
 
 public:
     CLIENT * clnt;
-    int post(char * content);
+    void post(char * content);
 
-    char * read();
+    void read();
 
-    ArticleContent choose(int index);
+    void choose(int index);
 
-    int reply(char * content, int index);
+    void reply(char * content, int index);
 
     Client(char *ip, int port, char *serv_ip) {
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
@@ -37,39 +37,43 @@ public:
     /*Function implementation to receive udp communication*/
 };
 
-int Client::post(char * content) {
+void Client::post(char * content) {
+    std::cout <<"into client's post function" << endl;
     auto output = post_1(content, clnt);
-    if (output == NULL) {
-        clnt_perror(clnt, "Cannot post");
+    if (*output == 0) {
+        std::cout << "Post the article " << content << " fails";
+        //clnt_perror(clnt, "Cannot post");
     } else {
-        std::cout << "Post with index " << *output << std::endl;
+        std::cout << "Post the article " << *output << " " << content << std::endl;
     }
 }
 
-char * Client::read() {
+void Client::read() {
+    std::cout<<"Into client's read function." << endl;
     auto output = read_1(clnt);
-    if (output == NULL) {
-        clnt_perror(clnt, "Cannot read");
-    } else {
-        std::cout << *output << std::endl;
-    }
+    //if (output == NULL) {
+    //    clnt_perror(clnt, "Cannot read");
+    //} else {
+    std::cout << "Read from server\n" << *output << std::endl;
+    //}
 }
 
-ArticleContent Client::choose(int index) {
+void Client::choose(int index) {
     auto output = choose_1(index, clnt);
-    if (output == NULL) {
-        clnt_perror(clnt, "Cannot choose");
+    if (output->index == 0) {
+        std::cout << "Cannot choose article with id " << index << std::endl;
     } else {
-        std::cout << output->index << " " << output->content << std::endl;
+        std::cout << "Choose the article:\n" << output->index << " " << output->content << std::endl;
     }
 }
 
-int Client::reply(char * content, int index) {
+void Client::reply(char * content, int index) {
     auto output = reply_1(content, index, clnt);
-    if (output == NULL) {
-        clnt_perror(clnt, "Cannot choose reply");
+    if (*output == 0) {
+        std::cout << "Can't reply to article " << index << " with " << content;
+        //clnt_perror(clnt, "Cannot reply to ");
     } else {
-        std::cout << "Choose index " << *output << std::endl;
+        std::cout << "Reply the article " << index << " with the new article " << *output << " " << content << std::endl;
     }
 }
 
@@ -101,22 +105,42 @@ int main(int argc, char *argv[]) {
             cout << "ERROR:  Please limit operation values from 1-4 " << endl;
             continue;
         }
-        char *article = new char[10];
-        char *article2 = new char[10];
+        char *article = new char[MAXSTRING];
+        string articleStr;
+        int articleId = 0;
         switch (func_number) {
             case 1:
-                strcpy(article, "article 1");
+                std::cout << "Please enter the article content:\n";
+                strcpy(article, "");
+                while (1) {
+                    std::getline(cin, articleStr);
+                    if (articleStr.length() > 1) {
+                        break;
+                    }
+                }
+                strcpy(article, articleStr.substr(0, articleStr.length()).c_str());
                 conn.post(article);
                 break;
             case 2:
                 conn.read();
                 break;
             case 3:
-                conn.choose(1);
+                std::cout << "Please enter what articles you want to choose:\n";
+                std::cin >> articleId;
+                conn.choose(articleId);
                 break;
             case 4:
-                strcpy(article2, "article 2");
-                conn.reply(article2, 1);
+                std::cout << "Please enter the article id you want to reply:\n";
+                std::cin >> articleId;
+                std::cout << "Please enter the reply article:\n";
+                while (1) {
+                    std::getline(cin, articleStr);
+                    if (articleStr.length() > 1) {
+                        break;
+                    }
+                }
+                strcpy(article, articleStr.substr(0, articleStr.length()).c_str());
+                conn.reply(article, articleId);
                 break;
             default:
                 std::cout << "Wrong format specified. Please retry \n";

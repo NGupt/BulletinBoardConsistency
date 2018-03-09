@@ -1,4 +1,4 @@
-const MAXSTRING = 50;
+const MAXSTRING = 101;
 typedef string str<MAXSTRING>;
 
 struct ArticleContent {
