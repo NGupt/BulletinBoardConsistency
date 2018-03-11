@@ -1,3 +1,5 @@
+#ifndef PEER_SERVER_H
+#define PEER_SERVER_H
 #pragma once
 #include <iostream>
 #include <map>
@@ -5,19 +7,13 @@
 using namespace std;
 
 
-map<pair<int,int>, bool> serverIsCoordinator;
-pair<int,int> coordinator;
-class PeerServer;
-
-map<pair<int,int>, PeerServer*> serverMap; 
-
 class PeerServer { 
-    pair<int,int> addr;
+    pair<string,int> addr;
     int data;
     int timeStamp;
 public:
     //server pointer, whether is coordinator
-    PeerServer(int ip, int port);
+    PeerServer(string ip, int port);
 
     void chooseNewCoordinator();
 
@@ -35,3 +31,4 @@ public:
 };
 
 
+#endif

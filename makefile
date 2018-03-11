@@ -7,7 +7,7 @@ SVC=communicate_svc.cpp
 CLI=communicate_clnt.cpp
 XDR=communicate_xdr.cpp
 
-SVC_SRC= $(XDR) $(SVC) peer_server.cpp communicate_server.cpp article.cpp
+SVC_SRC= $(XDR) $(SVC) communicate_server.cpp peer_server.cpp article.cpp
 CLI_SRC=$(XDR) $(CLI) communicate_client.cpp
 
 CLIENT=clientside
@@ -26,5 +26,5 @@ $(SERVER): $(SVC_SRC)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
 clean:
-	rm -f $(SVC) $(CLI) $(XDR) $(CLIENT) \
-	    $(SERVER) communicate.h
+	rm -f $(CLIENT) \
+	    $(SERVER)
