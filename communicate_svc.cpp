@@ -103,14 +103,20 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 	return;
 }
 
-int
-main (int argc, char **argv)
+int main (int argc, char **argv)
 {
 	//deal with input
     if (argc < 3) {
         std::cout << "Usage: ./serverside server_ip server_port\n";
         exit(1);
     }
+
+    string server_ip((char *) argv[1], strlen((char *)argv[1]));
+    int server_port = stoi(argv[2]);
+    cout << "Start server at: " << endl;
+    cout << server_ip << " " << server_port << endl;
+    PeerServer server(server_ip, server_port);
+
 	register SVCXPRT *transp;
 
 	pmap_unset (COMMUNICATE_PROG, COMMUNICATE_VERSION);
@@ -138,9 +144,6 @@ main (int argc, char **argv)
 	svc_run ();
 	fprintf (stderr, "%s", "svc_run returned");
 
-    string server_ip((char *) argv[1], strlen((char *)argv[1]));
-    int server_port = stoi(argv[2]);
-    PeerServer server(server_ip, server_port);
 
 	exit (1);
 	/* NOTREACHED */

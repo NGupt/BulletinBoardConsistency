@@ -51,5 +51,6 @@ public:
     //read the content of article
     string read();
 
+    ArticlePool deepCopy();
     int getCount();
 };

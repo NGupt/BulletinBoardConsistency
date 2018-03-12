@@ -8,16 +8,14 @@ using namespace std;
 
 
 
-string intToStr(int x) {
-    stringstream ss;
+string intToStr(int x) { stringstream ss;
     ss << x;
     return ss.str();
 }
 
 Article::Article(int id, string article): content(article), index(id) {}
 
-ArticlePool::ArticlePool() {
-    count = 0;
+ArticlePool::ArticlePool(): count(0) {
 }
 
 int ArticlePool::storeArticle(string article, int father) {
@@ -49,9 +47,7 @@ Article* ArticlePool::choose(int index) {
         //cout << "Article " << index << " doesn't exist." << endl;
         return NULL;
     }
-}
-
-    //reply to article with index
+} //reply to article with index
     //return the index of the new article
     //the index == 0 if doesn't post successfully
 int ArticlePool::reply(string article, int index) { 
@@ -81,6 +77,20 @@ void ArticlePool::getArticleContent(string & articles, Article *now, int level) 
     }
 }
 
+ArticlePool ArticlePool::deepCopy() {
+    ArticlePool newPool = ArticlePool();
+    cout << newPool.count << endl;
+    cout << count << endl;
+    newPool.count = count;
+    for (int i = 0; i < isHeadArticle.size(); i++) {
+        newPool.isHeadArticle.push_back(isHeadArticle[i]);
+    }
+    for (auto it = articleMap.begin(); it != articleMap.end(); it++) {
+        newPool.articleMap[it->first] = it->second;
+    }
+    return newPool;
+}
+
 
     //read the content of article
 string ArticlePool::read() {
@@ -98,10 +108,12 @@ int ArticlePool::getCount() {
     return count;
 }
 
+
 //int main() {
 //    ArticlePool articlePool;
 //    //------------test article pool-----/
-//    articlePool.storeArticle("Article 1");
+//    ArticlePool newPool2 = articlePool.deepCopy();
+//    articlePool.post("Article 1");
 //    cout << articlePool.read() << endl;
 //    int id1 = articlePool.post("Article 2");
 //    cout << articlePool.read() << endl;
@@ -119,5 +131,9 @@ int ArticlePool::getCount() {
 //    if (now != NULL) 
 //    cout << now->index << " " << now->content << endl;
 //    now = articlePool.choose(6);
+//    ArticlePool newPool = articlePool.deepCopy();
+//    newPool.post("newnewnew");
+//    cout << articlePool.read() << endl;
+//    cout << newPool.read() << endl;
 //    return 0;
 //}

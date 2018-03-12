@@ -4,21 +4,37 @@
  * as a guideline for developing your own functions.
  */
 
-#include <iostream>
 #include "communicate.h"
-#include "article.h"
-#include "string.h"
-using namespace std;
+#include <stdio.h>
+#include <stdlib.h>
+#include <rpc/pmap_clnt.h>
+#include <string.h>
+#include <memory.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "peer_server.h"
 
-static ArticlePool articlePool;
+#ifndef SIG_PF
+#define SIG_PF void(*)(int)
+#endif
+
+#include <iostream>
+#include "article.h"
+#include "peer_server.h"
+using namespace std; 
+//ArticlePool articlePool;
+
+extern map<pair<string, int>, PeerServer*> simulateUDP;
+
 
 int *
 post_1_svc(char *content,  struct svc_req *rqstp)
 {
     std::string myString(content, strlen(content));
     static int result = 0;
-    int now = articlePool.post(myString);
-    result = now;
+    auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
+    int res = now->post(myString);
+    result = res;
     if (result == 0) {
         cout << "Post fails. " << endl;
     } else {
@@ -37,7 +53,8 @@ char **
 read_1_svc(struct svc_req *rqstp)
 {
 	static char * result = new char[MAXSTRING];
-    string resultStr = articlePool.read();
+    auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
+    string resultStr = now->read();
     strcpy(result, resultStr.c_str());
 	/*
 	 * insert server code here
@@ -52,7 +69,8 @@ choose_1_svc(int index,  struct svc_req *rqstp)
 {
 	static ArticleContent  result;
     result.content = new char[MAXSTRING];
-    Article * resultArticle = articlePool.choose(index);
+    auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
+    Article * resultArticle = now->choose(index);
 	/*
 	 * insert server code here
 	 */
@@ -74,8 +92,9 @@ reply_1_svc(char *content, int index,  struct svc_req *rqstp)
 {
     string resultStr(content, strlen(content));
 	static int result = 0;
-    int now = articlePool.reply(resultStr, index);
-    result = now;
+    auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
+    int res = now->reply(resultStr, index);
+    result = res;
     if (result == 0) {
         cout << "Can't reply to article with id " << index << "." << endl;
     } else {
