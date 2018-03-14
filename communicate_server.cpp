@@ -29,7 +29,7 @@ PeerClient * now;
 //////////////////////////////////// peer client ////////////////////
 //class PeerClient;
 
-// 
+//
 // PeerClient::PeerClient(string ip, int port){
 //   this->server_ip = ip;
 //   this->server_port = port;
@@ -150,7 +150,7 @@ ArticlePoolStruct PeerClient::get_article(){
   if (output == (ArticlePoolStruct *) NULL) {
     clnt_perror (pclnt, "call failed");
   } else {
-    std::cout << "Get article " ;//<< *output << std::endl;
+    std::cout << "Get article " << output << std::endl;
   }
 }
 
@@ -159,7 +159,7 @@ int PeerClient::send_article(ArticlePoolStruct pool){
   if (output == (int *) NULL) {
     clnt_perror (pclnt, "call failed");
   } else {
-    std::cout << "send article " ;//<< *output << std::endl;
+    std::cout << "send article " << *output << std::endl;
   }
 }
 
