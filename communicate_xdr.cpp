@@ -108,3 +108,13 @@ xdr_reply_1_argument (XDR *xdrs, reply_1_argument *objp)
 		 return FALSE;
 	return TRUE;
 }
+
+bool_t
+xdr_join_server_1_argument (XDR *xdrs, join_server_1_argument *objp)
+{
+	 if (!xdr_IP (xdrs, &objp->arg1))
+		 return FALSE;
+	 if (!xdr_int (xdrs, &objp->arg2))
+		 return FALSE;
+	return TRUE;
+}

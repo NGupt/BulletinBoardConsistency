@@ -284,7 +284,38 @@ reply_1(char *arg1, int arg2,  CLIENT *clnt)
 	return (&clnt_res);
 }
 
+//TODO: implement it
+server_list *
+get_server_list_1(CLIENT *clnt)
+{
+	static server_list clnt_res;
 
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	 if (clnt_call (clnt, GET_SERVER_LIST, (xdrproc_t) xdr_void, (caddr_t) NULL,
+		(xdrproc_t) xdr_server_list, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+//TODO: implement it
+int *
+join_server_1(IP arg1, int arg2,  CLIENT *clnt)
+{
+	join_server_1_argument arg;
+	static int clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	arg.arg1 = arg1;
+	arg.arg2 = arg2;
+	if (clnt_call (clnt, JOIN_SERVER, (xdrproc_t) xdr_join_server_1_argument, (caddr_t) &arg,
+		(xdrproc_t) xdr_int, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
 /////////////////////////////peer client///////////////////////////
 
 int

@@ -64,6 +64,12 @@ struct reply_1_argument {
 };
 typedef struct reply_1_argument reply_1_argument;
 
+struct join_server_1_argument {
+	IP arg1;
+	int arg2;
+};
+typedef struct join_server_1_argument join_server_1_argument;
+
 #define COMMUNICATE_PROG 0x20000001
 #define COMMUNICATE_VERSION 1
 
@@ -92,6 +98,12 @@ extern  int * send_article_1_svc(ArticlePoolStruct , struct svc_req *);
 #define SEND_SERVER_LIST 8
 extern  int * send_server_list_1(server_list , CLIENT *);
 extern  int * send_server_list_1_svc(server_list , struct svc_req *);
+#define GET_SERVER_LIST 9
+extern  server_list * get_server_list_1(CLIENT *);
+extern  server_list * get_server_list_1_svc(struct svc_req *);
+#define JOIN_SERVER 10
+extern  int * join_server_1(IP , int , CLIENT *);
+extern  int * join_server_1_svc(IP , int , struct svc_req *);
 extern int communicate_prog_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
 
 #else /* K&R C */
@@ -119,6 +131,12 @@ extern  int * send_article_1_svc();
 #define SEND_SERVER_LIST 8
 extern  int * send_server_list_1();
 extern  int * send_server_list_1_svc();
+#define GET_SERVER_LIST 9
+extern  server_list * get_server_list_1();
+extern  server_list * get_server_list_1_svc();
+#define JOIN_SERVER 10
+extern  int * join_server_1();
+extern  int * join_server_1_svc();
 extern int communicate_prog_1_freeresult ();
 #endif /* K&R C */
 
@@ -134,6 +152,7 @@ extern  bool_t xdr_ArticleStruct (XDR *, ArticleStruct*);
 extern  bool_t xdr_array_article (XDR *, array_article*);
 extern  bool_t xdr_ArticlePoolStruct (XDR *, ArticlePoolStruct*);
 extern  bool_t xdr_reply_1_argument (XDR *, reply_1_argument*);
+extern  bool_t xdr_join_server_1_argument (XDR *, join_server_1_argument*);
 
 #else /* K&R C */
 extern bool_t xdr_str ();
@@ -145,6 +164,7 @@ extern bool_t xdr_ArticleStruct ();
 extern bool_t xdr_array_article ();
 extern bool_t xdr_ArticlePoolStruct ();
 extern bool_t xdr_reply_1_argument ();
+extern bool_t xdr_join_server_1_argument ();
 
 #endif /* K&R C */
 

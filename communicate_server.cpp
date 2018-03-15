@@ -69,7 +69,7 @@ int PeerClient::post(char * content) {
         //post to articlePool
         output = articlePool.post(myString);
 
-        //send article to other servers;  
+        //send article to other servers;
     } else {
         output = *post_1(content, pclnt);
     }
@@ -188,6 +188,25 @@ int PeerClient::send_server_list(server_list servers){
     std::cout << "send article " << *output << std::endl;
   }
 }
+
+server_list PeerClient::get_server_list(){
+  auto output = get_server_list_1(pclnt);
+  if (output == (server_list *) NULL) {
+    clnt_perror (pclnt, "call failed");
+  } else {
+  //  std::cout << "get server lsit " << *output << std::endl;
+  }
+}
+
+int PeerClient::join_server(IP ip, int port){
+  //std::string myString(content, strlen(ip));
+  auto output = join_server_1(ip, port, pclnt);
+  if (output == (int *) NULL) {
+    clnt_perror (pclnt, "call failed");
+  } else {
+    std::cout << "join server " << *output << std::endl;
+  }
+}
 ////////////////////////////peer client////////////////////////////////////////
 
 
@@ -279,7 +298,7 @@ send_article_1_svc(ArticlePoolStruct pool,  struct svc_req *rqstp)
 {
     //updates' articlePool
     now->receiveArticle(pool);
-	static int  result = 1; 
+	static int  result = 1;
 	return &result;
 }
 
@@ -292,4 +311,27 @@ send_server_list_1_svc(server_list servers,  struct svc_req *rqstp)
 }
 
 
+server_list *
+get_server_list_1_svc(struct svc_req *rqstp)
+{
+	static server_list  result;
+
+	/*
+	 * insert server code here
+	 */
+
+	return &result;
+}
+
+int *
+join_server_1_svc(IP arg1, int arg2,  struct svc_req *rqstp)
+{
+	static int  result;
+
+	/*
+	 * insert server code here
+	 */
+
+	return &result;
+}
 ////////////////////////////peer server//////////////////////////////////

@@ -24,6 +24,8 @@ public:
     string read();
     ArticleContent choose(int index);
     int reply(char * content, int index);
+    server_list get_server_list();
+    int join_server(IP ip, int port);
     //PeerClient(string ip, int port);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~PeerClient();

@@ -20,6 +20,8 @@ public:
 
     void reply(char * content, int index);
 
+    void get_server_list();
+
     Client(char *ip, int port, char *serv_ip) {
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
         if (clnt == NULL) {
@@ -75,7 +77,13 @@ void Client::reply(char * content, int index) {
     }
 }
 
-
+void Client::get_server_list() {
+    auto output = get_server_list_1(clnt);
+    //TODO: fix it
+    if (output == (server_list *) NULL) {
+      clnt_perror (clnt, "call failed");
+    }
+}
 
 int main(int argc, char *argv[]) {
 
@@ -134,7 +142,7 @@ int main(int argc, char *argv[]) {
                         articleIdCorrect = true;
                     } catch (std::exception& e) {
                         std::cout << "ERROR:  Please input integer for article id" << std::endl;
-                    } 
+                    }
                 }
                 conn.choose(articleId);
                 break;
@@ -148,7 +156,7 @@ int main(int argc, char *argv[]) {
                         articleIdCorrect = true;
                     } catch (std::exception& e) {
                         std::cout << "ERROR:  Please input integer for article id" << std::endl;
-                    } 
+                    }
                 }
                 std::cout << "Please enter the reply article:\n";
                 while (1) {

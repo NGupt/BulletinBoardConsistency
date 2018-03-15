@@ -39,5 +39,7 @@ program COMMUNICATE_PROG {
         ArticlePoolStruct GET_ARTICLE() = 6;
         int SEND_ARTICLE(ArticlePoolStruct) = 7;
         int SEND_SERVER_LIST(server_list) = 8;
+        server_list GET_SERVER_LIST() = 9;
+        int JOIN_SERVER(IP, int) = 10;
     } = 1;
 } = 0x20000001;
