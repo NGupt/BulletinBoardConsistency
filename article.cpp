@@ -211,7 +211,7 @@ void PrintArticlePoolStruct(ArticlePoolStruct pool) {
 }
 
 
-void ArticlePool::encodeInt(char *&buffer, int x) {
+void encodeInt(char *&buffer, int x) {
     *buffer = x & 0xff; 
     *(++buffer) = (x >> 8) & 0xff;
     *(++buffer) = (x >> 16) & 0xff;
@@ -220,7 +220,7 @@ void ArticlePool::encodeInt(char *&buffer, int x) {
     char *newbuffer = buffer - 4;
 }
 
-void ArticlePool::encodeString(char *&buffer, string s) {
+void encodeString(char *&buffer, string s) {
    strcpy(buffer, s.c_str());
    buffer += MAXSTRING;
 }
@@ -233,7 +233,7 @@ void ArticlePool::encodeArticle(char *& buffer, Article * article, int father) {
     }
 }
 
-int ArticlePool::decodeInt(char *&buffer) {
+int decodeInt(char *&buffer) {
     int x = *buffer;
     x = x | (*(++buffer) << 8); 
     x = x | (*(++buffer) << 16);
@@ -242,7 +242,7 @@ int ArticlePool::decodeInt(char *&buffer) {
     return x;
 }
 
-string ArticlePool::decodeString(char *&buffer) {
+string decodeString(char *&buffer) {
     string s(buffer, strlen(buffer));
     buffer += MAXSTRING;
     return s;
@@ -275,11 +275,11 @@ void ArticlePool::decodeArticlePool(char *article) {
 
 
 void PrintArticlePoolMessage(ArticlePool *p, char *pool) {
-    int size = p->decodeInt(pool);
+    int size = decodeInt(pool);
     cout << "Count: " << size << endl;
     for (int i = 0; i < size; i++) {
-        int father = p->decodeInt(pool);
-        string s = p->decodeString(pool); 
+        int father = decodeInt(pool);
+        string s = decodeString(pool); 
         cout << "Father Index: " << father << "\n Content: " << s << endl;
     }
 }

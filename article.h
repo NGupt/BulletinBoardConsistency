@@ -11,6 +11,10 @@
 using namespace std;
 
 string intToStr(int x);
+void encodeString(char *& buffer, string content);
+void encodeInt(char *& buffer, int x);
+string decodeString(char *& buffer);
+int decodeInt(char *& buffer);
 
 struct Article {
 public:
@@ -60,10 +64,6 @@ public:
     void releaseArticle(Article *article);
     
     void encodeArticle(char *&buffer, Article *article, int father);
-    void encodeString(char *& buffer, string content);
-    void encodeInt(char *& buffer, int x);
-    string decodeString(char *& buffer);
-    int decodeInt(char *& buffer);
     char * encodeArticlePool();
     void decodeArticlePool(char * pool);
 };
