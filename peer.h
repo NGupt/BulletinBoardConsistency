@@ -11,9 +11,10 @@ class PeerClient {
 	ArticlePool articlePool;
 	// int data;
 	//int timeStamp;
-	set<pair<string, int>> serverList;
+	vector<pair<string, int>> serverList;
 public:
-    CLIENT *pclnt;
+    CLIENT *pclnt; //coordinator
+    vector<CLIENT *> pclnts; //serverlists
     int send_flag(int flag);
     ArticlePoolStruct get_article();
     ArticlePoolStruct getLocalArticle();

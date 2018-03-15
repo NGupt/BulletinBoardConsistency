@@ -40,8 +40,17 @@ PeerClient * now;
 // }
 // 
 int PeerClient::joinServerSimple(string ip, int port) {
-    if (serverList.find(make_pair(ip, port)) == serverList.end()) {
-        serverList.insert(make_pair(ip, port));
+    //insert ip  into serverList and start a client object
+    serverList.push_back(make_pair(ip, port));
+    if (isCoordinator()) {
+      char * currentIp = new char[ip.length() + 1];
+      strcpy(currentIp, ip.c_str());
+      CLIENT *p = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
+      if (p == NULL) {
+        clnt_pcreateerror (currentIp);
+        exit (1);
+      }
+      pclnts.push_back(pclnt);
     }
     return 1;
 }
@@ -49,6 +58,7 @@ int PeerClient::joinServerSimple(string ip, int port) {
 bool PeerClient::isCoordinator() {
   return isCoordinator(server_ip, server_port);
 }
+
 bool PeerClient::isCoordinator(string ip, int port) {
     return ip == coordinator_ip && port == coordinator_port;
 }
@@ -58,11 +68,11 @@ server_list PeerClient::buildServerList() {
     res.server_list_val = new node[serverList.size()];
     res.server_list_len = serverList.size();
     int pos = 0;
-    for (set<pair<string, int>>::iterator it = serverList.begin(); it != serverList.end(); it++) {
+    for (int i = 0; i < serverList.size(); i++) {
         node *p = res.server_list_val + pos;
-        p->ip = new char[it->first.length() + 1];
-        strcpy(p->ip, it->first.c_str());
-        p->port = it->second;
+        p->ip = new char[serverList[i].first.length() + 1];
+        strcpy(p->ip, serverList[i].first.c_str());
+        p->port = serverList[i].second; 
         pos++;
     }
     return res;
@@ -73,7 +83,7 @@ int PeerClient::receiveServerList(server_list servers) {
   for (int i = 0; i < servers.server_list_len; i++) {
       IP ip = (servers.server_list_val + i)->ip;
       string ips(ip, strlen(ip));
-      serverList.insert(make_pair(ips, (servers.server_list_val+i)->port));
+      serverList.push_back(make_pair(ips, (servers.server_list_val+i)->port));
   }
   return 1;
 }
@@ -101,13 +111,10 @@ CLIENT * generateClient(char * currentIp) {
 
 void PeerClient::sendServerListToAll() {
     server_list servers = buildServerList();
-    for (auto it = serverList.begin(); it != serverList.end(); it++) {
-        if (isCoordinator(it->first, it->second)) continue;
-        char *currentIp = new char[it->first.length() + 1];
-        strcpy(currentIp, it->first.c_str());
-        CLIENT * c = generateClient(currentIp);
-        send_server_list_1(servers, c);
-        if (c) clnt_destroy(c);
+    for (int i = 0; i < serverList.size(); i++) {
+        if (isCoordinator(serverList[i].first, serverList[i].second)) continue;
+        cout << "Just before sending list to " << serverList[i].first << endl;
+        send_server_list_1(servers, pclnts[i]);
     }
 }
 
@@ -142,6 +149,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         join_server_1(o_ip, port, pclnt);
         cout << "after join server" << endl;
         server_list servers = buildServerList();
+        //testing send server list
         auto output = send_server_list_1(servers, pclnt);
         outputServerList(this);
     }
@@ -151,6 +159,9 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
 PeerClient::~PeerClient() {
     if (pclnt){
     clnt_destroy(pclnt);
+  }
+  for (int i = 0; i < pclnts.size(); i++) {
+    clnt_destroy(pclnts[i]);
   }
 }
 
@@ -403,6 +414,7 @@ send_article_1_svc(ArticlePoolStruct pool,  struct svc_req *rqstp)
 int *
 send_server_list_1_svc(server_list servers,  struct svc_req *rqstp)
 {
+  cout << "get a list from coordinator:" << endl;
 	static int  result = now->receiveServerList(servers);
 	return &result;
 }
