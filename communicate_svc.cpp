@@ -72,6 +72,18 @@ _send_server_list_1 (server_list  *argp, struct svc_req *rqstp)
 	return (send_server_list_1_svc(*argp, rqstp));
 }
 
+static server_list *
+_get_server_list_1 (void  *argp, struct svc_req *rqstp)
+{
+    return (get_server_list_1_svc(rqstp));
+}
+
+static int *
+_join_server_1 (join_server_1_argument *argp, struct svc_req *rqstp)
+{
+    return (join_server_1_svc(argp->arg1, argp->arg2, rqstp));
+}
+
 static void
 communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 {
@@ -139,6 +151,18 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		_xdr_result = (xdrproc_t) xdr_int;
 		local = (char *(*)(char *, struct svc_req *)) _send_server_list_1;
 		break;
+
+	case GET_SERVER_LIST:
+        _xdr_argument = (xdrproc_t) xdr_void;
+        _xdr_result = (xdrproc_t) xdr_server_list;
+        local = (char *(*)(char *, struct svc_req *)) _get_server_list_1;
+        break;
+
+   case JOIN_SERVER:
+        _xdr_argument = (xdrproc_t) xdr_join_server_1_argument;
+        _xdr_result = (xdrproc_t) xdr_int;
+        local = (char *(*)(char *, struct svc_req *)) _join_server_1;
+        break;	
 
 	default:
 		svcerr_noproc (transp);

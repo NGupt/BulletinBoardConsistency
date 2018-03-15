@@ -38,8 +38,7 @@ PeerClient * now;
 //   now = this;
 //   std::cout << ".....Completed peer coordinator creation.....\n";
 // }
-//
-
+// 
 int PeerClient::joinServerSimple(string ip, int port) {
     if (serverList.find(make_pair(ip, port)) == serverList.end()) {
         serverList.insert(make_pair(ip, port));
@@ -48,7 +47,10 @@ int PeerClient::joinServerSimple(string ip, int port) {
 }
 
 bool PeerClient::isCoordinator() {
-    return server_ip == coordinator_ip && server_port == coordinator_port;
+  return isCoordinator(server_ip, server_port);
+}
+bool PeerClient::isCoordinator(string ip, int port) {
+    return ip == coordinator_ip && port == coordinator_port;
 }
 
 server_list PeerClient::buildServerList() {
@@ -66,6 +68,16 @@ server_list PeerClient::buildServerList() {
     return res;
 }
 
+int PeerClient::receiveServerList(server_list servers) {
+  serverList.clear();
+  for (int i = 0; i < servers.server_list_len; i++) {
+      IP ip = (servers.server_list_val + i)->ip;
+      string ips(ip, strlen(ip));
+      serverList.insert(make_pair(ips, (servers.server_list_val+i)->port));
+  }
+  return 1;
+}
+
 void outputServerList(PeerClient *p) {
     //output server list;
     cout << "outputing server list:" << endl;
@@ -76,6 +88,37 @@ void outputServerList(PeerClient *p) {
     cout << endl;
 }
 
+CLIENT * generateClient(char * currentIp) {
+  CLIENT *pclnt = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
+  if (pclnt == NULL) {
+    clnt_pcreateerror (currentIp);
+    exit (1);
+  }
+  return pclnt;
+}
+
+
+
+void PeerClient::sendServerListToAll() {
+    server_list servers = buildServerList();
+    for (auto it = serverList.begin(); it != serverList.end(); it++) {
+        if (isCoordinator(it->first, it->second)) continue;
+        char *currentIp = new char[it->first.length() + 1];
+        strcpy(currentIp, it->first.c_str());
+        CLIENT * c = generateClient(currentIp);
+        send_server_list_1(servers, c);
+        if (c) clnt_destroy(c);
+    }
+}
+
+
+//join a serve to coordinator
+int PeerClient::joinServer(string ip, int port) {
+    joinServerSimple(ip, port);
+    outputServerList(this);
+    sendServerListToAll();
+}
+
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port){
     this->server_ip = ip;
     this->server_port = port;
@@ -84,6 +127,8 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     now = this;
     char * c_ip = new char [coordinator_ip.length()+1];
     strcpy (c_ip, coordinator_ip.c_str());
+    char * o_ip = new char [ip.length()+1];
+    strcpy (o_ip, ip.c_str());
     pclnt = clnt_create (c_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
     if (pclnt == NULL) {
       clnt_pcreateerror (c_ip);
@@ -91,11 +136,11 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     }
     if (isCoordinator()) {
         cout << "is coordinator" << endl;
-        joinServerSimple(ip, port);
-        outputServerList(this);
-        //sendServerListToAll();
+        joinServerSimple(o_ip, port);
     } else {
-        cout << "is not coordinator" << endl;
+        cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
+        join_server_1(o_ip, port, pclnt);
+        cout << "after join server" << endl;
         server_list servers = buildServerList();
         auto output = send_server_list_1(servers, pclnt);
         outputServerList(this);
@@ -358,8 +403,7 @@ send_article_1_svc(ArticlePoolStruct pool,  struct svc_req *rqstp)
 int *
 send_server_list_1_svc(server_list servers,  struct svc_req *rqstp)
 {
-	static int  result = 1;
-
+	static int  result = now->receiveServerList(servers);
 	return &result;
 }
 
@@ -379,8 +423,9 @@ get_server_list_1_svc(struct svc_req *rqstp)
 int *
 join_server_1_svc(IP arg1, int arg2,  struct svc_req *rqstp)
 {
-	static int  result;
-
+  cout << "join a server " << arg1 << " " << arg2 <<" into coordinator" << endl;
+  string ips(arg1, strlen(arg1));
+	static int  result = now->joinServer(ips, arg2);
 	/*
 	 * insert server code here
 	 */
