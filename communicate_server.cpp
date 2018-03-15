@@ -134,8 +134,11 @@ void PeerClient::decodeServerList(char * ser) {
     //vector<pair<string, int>> servers;
     serverList.clear();
     int size = decodeInt(ser);
+    //cout << "size: " << size << endl;
     for (int i = 0; i < size; i++) { 
-        serverList.push_back(make_pair(decodeString(ser), decodeInt(ser)));
+        string s = decodeString(ser, MAXIP);
+        int port = decodeInt(ser);
+        serverList.push_back(make_pair(s, port));
     }
 }
 
@@ -145,8 +148,18 @@ char * PeerClient::encodeServerList() {
     char *r =res;
     encodeInt(res, serverList.size());
     for (int i = 0; i < serverList.size(); i++) {
+        cout << "encodeing " << serverList[i].first << endl;
         encodeString(res, serverList[i].first, MAXIP);
+
+        ////debug
+        //char *r1 = res - MAXIP;
+        //cout << "decodeing " << decodeString(r1, MAXIP) <<endl;
+
+        //cout << "encodeing " << serverList[i].second << endl;
         encodeInt(res, serverList[i].second);
+        ////debug
+        //char *r2 = res - 4;
+        //cout << "decodeing " << decodeInt(r2) <<endl;
     }
     return r;
 }
@@ -258,8 +271,14 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     if (isCoordinator()) {
         cout << "is coordinator" << endl;
         joinServerSimple(o_ip, port);
-        decodeServerList(encodeServerList());
-        outputServerList(this);
+        //char t1[] = "127.0.0.1";
+        //string s1(t1, strlen(t1));
+        //joinServerSimple(s1, 3219);
+        //char t2[] = "127.0.0.2";
+        //string s2(t2, strlen(t2));
+        //joinServerSimple(s2, 3220);
+        //decodeServerList(encodeServerList());
+        //outputServerList(this);
     } else {
         cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
         join_server_1(o_ip, port, pclnt);
@@ -274,8 +293,8 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         server_list servers = buildServerList();
         //testing send server list
         auto output = send_server_list_1(servers, pclnt);
-        decodeServerList(encodeServerList());
-        outputServerList(this);
+        //decodeServerList(encodeServerList());
+        //outputServerList(this);
     }
     std::cout << ".....Completed Server creation.....\n";
 }

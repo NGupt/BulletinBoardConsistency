@@ -13,7 +13,7 @@ using namespace std;
 string intToStr(int x);
 void encodeString(char *& buffer, string content, int len);
 void encodeInt(char *& buffer, int x);
-string decodeString(char *& buffer);
+string decodeString(char *& buffer, int len);
 int decodeInt(char *& buffer);
 
 struct Article {
