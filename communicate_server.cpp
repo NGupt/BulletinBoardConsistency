@@ -41,7 +41,7 @@ PeerClient * now;
 //
 
 int PeerClient::joinServerSimple(string ip, int port) {
-    if (serverList.find(make_pair(ip, port)) != serverList.end()) {
+    if (serverList.find(make_pair(ip, port)) == serverList.end()) {
         serverList.insert(make_pair(ip, port));
     }
     return 1;
@@ -53,19 +53,28 @@ bool PeerClient::isCoordinator() {
 
 server_list PeerClient::buildServerList() {
     server_list res;
-    //res.server_list_val = new node[serverList.size()];
-    //res.server_list_len = serverList.size();
-    //int pos = 0;
-    //for (set<pair<string, int>>::iterator it = serverList.begin(); it != serverList.end(); it++) {
-    //    node *p = res.server_list_val + pos;
-    //    p->ip = new char[it->first.length() + 1];
-    //    strcpy(p->ip, it->first.c_str());
-    //    p->port = it->second;
-    //    pos++;
-    //}
+    res.server_list_val = new node[serverList.size()];
+    res.server_list_len = serverList.size();
+    int pos = 0;
+    for (set<pair<string, int>>::iterator it = serverList.begin(); it != serverList.end(); it++) {
+        node *p = res.server_list_val + pos;
+        p->ip = new char[it->first.length() + 1];
+        strcpy(p->ip, it->first.c_str());
+        p->port = it->second;
+        pos++;
+    }
     return res;
 }
 
+void outputServerList(PeerClient *p) {
+    //output server list;
+    cout << "outputing server list:" << endl;
+    server_list servers = p->buildServerList();
+    for (int i = 0; i < servers.server_list_len; i++) {
+        cout << (servers.server_list_val+i)->ip << " " << (servers.server_list_val+i)->port << endl;
+    }
+    cout << endl;
+}
 
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port){
     this->server_ip = ip;
@@ -81,22 +90,15 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
       exit (1);
     }
     if (isCoordinator()) {
+        cout << "is coordinator" << endl;
         joinServerSimple(ip, port);
-
-        //server_list servers = buildServerList();
-        ////output server list;
-        //for (int i = 0; i < servers.server_list_len; i++) {
-        //    cout << (servers.node+i)->ip << " " << (servers.node+i)->port << endl;
-        //}
-
+        outputServerList(this);
         //sendServerListToAll();
     } else {
-        //server_list servers = buildServerList();
-        ////output server list;
-        //for (int i = 0; i < servers.server_list_len; i++) {
-        //    cout << (servers.node+i)->ip << " " << (servers.node+i)->port << endl;
-        //}
-        ////auto output = send_server_list_1(servers);
+        cout << "is not coordinator" << endl;
+        server_list servers = buildServerList();
+        auto output = send_server_list_1(servers, pclnt);
+        outputServerList(this);
     }
     std::cout << ".....Completed Server creation.....\n";
 }
@@ -109,13 +111,18 @@ PeerClient::~PeerClient() {
 
 int PeerClient::post(char * content) {
     int output;
+    cout << 1 << endl;
+    return 1;
     if(server_ip == coordinator_ip && server_port == coordinator_port){
+        cout << 2 << endl;
         std::string myString(content, strlen(content));
         //post to articlePool
         output = articlePool.post(myString);
+        cout << 3 << endl;
 
         //send article to other servers;
     } else {
+        cout << 4 << endl;
         output = *post_1(content, pclnt);
     }
     if (output == 0) {
@@ -262,6 +269,7 @@ int PeerClient::join_server(IP ip, int port){
 int *
 post_1_svc(char *content,  struct svc_req *rqstp)
 {
+    cout << "in post_1_svc " << endl;
     //std::string myString(content, strlen(content));
     static int result = 0;
     //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
