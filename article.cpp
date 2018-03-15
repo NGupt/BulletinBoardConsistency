@@ -177,37 +177,37 @@ void PrintArticlePoolStruct(ArticlePoolStruct pool) {
 
 
 
-int main() {
-    ArticlePool articlePool;
-    //------------test article pool-----/
-    ArticlePool newPool2 = articlePool.deepCopy();
-    articlePool.post("Article 1");
-    cout << articlePool.read() << endl;
-    int id1 = articlePool.post("Article 2");
-    cout << articlePool.read() << endl;
-    articlePool.reply("A reply for Article 2", id1);
-    cout << articlePool.read() << endl;
-    int id2 = articlePool.reply("A reply for Article 2", id1);
-    cout << articlePool.read() << endl;
-    articlePool.reply("A reply for Article 4", id2);
-    cout << articlePool.read() << endl;
-    cout << "--------tests for single choose-----" << endl;
-    Article * now = articlePool.choose(id1);
-    if (now != NULL) 
-    cout << now->index << " " << now->content << endl;
-    now = articlePool.choose(id2);
-    if (now != NULL) 
-    cout << now->index << " " << now->content << endl;
-    now = articlePool.choose(6);
-    ArticlePool newPool = articlePool.deepCopy();
-    newPool.post("newnewnew");
-    cout << articlePool.read() << endl;
-    cout << newPool.read() << endl;
-    cout << "testing article pool struct" << endl;
-    cout << articlePool.read() << endl;
-    ArticlePoolStruct pool = articlePool.getArticle();
-    PrintArticlePoolStruct(pool);
-    ArticlePool newPool3(pool);
-    cout << newPool3.read() << endl;
-    return 0;
-}
+//int main() {
+//    ArticlePool articlePool;
+//    //------------test article pool-----/
+//    ArticlePool newPool2 = articlePool.deepCopy();
+//    articlePool.post("Article 1");
+//    cout << articlePool.read() << endl;
+//    int id1 = articlePool.post("Article 2");
+//    cout << articlePool.read() << endl;
+//    articlePool.reply("A reply for Article 2", id1);
+//    cout << articlePool.read() << endl;
+//    int id2 = articlePool.reply("A reply for Article 2", id1);
+//    cout << articlePool.read() << endl;
+//    articlePool.reply("A reply for Article 4", id2);
+//    cout << articlePool.read() << endl;
+//    cout << "--------tests for single choose-----" << endl;
+//    Article * now = articlePool.choose(id1);
+//    if (now != NULL) 
+//    cout << now->index << " " << now->content << endl;
+//    now = articlePool.choose(id2);
+//    if (now != NULL) 
+//    cout << now->index << " " << now->content << endl;
+//    now = articlePool.choose(6);
+//    ArticlePool newPool = articlePool.deepCopy();
+//    newPool.post("newnewnew");
+//    cout << articlePool.read() << endl;
+//    cout << newPool.read() << endl;
+//    cout << "testing article pool struct" << endl;
+//    cout << articlePool.read() << endl;
+//    ArticlePoolStruct pool = articlePool.getArticle();
+//    PrintArticlePoolStruct(pool);
+//    ArticlePool newPool3(pool);
+//    cout << newPool3.read() << endl;
+//    return 0;
+//}
