@@ -26,6 +26,7 @@ struct ArticleContent {
 	int index;
 	str content;
 };
+
 typedef struct ArticleContent ArticleContent;
 
 struct node {

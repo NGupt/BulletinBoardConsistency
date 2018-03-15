@@ -40,20 +40,65 @@ PeerClient * now;
 // }
 //
 
+int PeerClient::joinServerSimple(string ip, int port) {
+    if (serverList.find(make_pair(ip, port)) != serverList.end()) {
+        serverList.insert(make_pair(ip, port));
+    }
+    return 1;
+}
+
+bool PeerClient::isCoordinator() {
+    return server_ip == coordinator_ip && server_port == coordinator_port;
+}
+
+server_list PeerClient::buildServerList() {
+    server_list res;
+    //res.server_list_val = new node[serverList.size()];
+    //res.server_list_len = serverList.size();
+    //int pos = 0;
+    //for (set<pair<string, int>>::iterator it = serverList.begin(); it != serverList.end(); it++) {
+    //    node *p = res.server_list_val + pos;
+    //    p->ip = new char[it->first.length() + 1];
+    //    strcpy(p->ip, it->first.c_str());
+    //    p->port = it->second;
+    //    pos++;
+    //}
+    return res;
+}
+
+
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port){
-  this->server_ip = ip;
-  this->server_port = port;
-  this->coordinator_ip = coordinator_ip;
-  this->coordinator_port = coordinator_port;
-  now = this;
-  char * c_ip = new char [coordinator_ip.length()+1];
-  strcpy (c_ip, coordinator_ip.c_str());
-  pclnt = clnt_create (c_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
-  if (pclnt == NULL) {
-    clnt_pcreateerror (c_ip);
-    exit (1);
-  }
-  std::cout << ".....Completed peer client creation.....\n";
+    this->server_ip = ip;
+    this->server_port = port;
+    this->coordinator_ip = coordinator_ip;
+    this->coordinator_port = coordinator_port;
+    now = this;
+    char * c_ip = new char [coordinator_ip.length()+1];
+    strcpy (c_ip, coordinator_ip.c_str());
+    pclnt = clnt_create (c_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
+    if (pclnt == NULL) {
+      clnt_pcreateerror (c_ip);
+      exit (1);
+    }
+    if (isCoordinator()) {
+        joinServerSimple(ip, port);
+
+        //server_list servers = buildServerList();
+        ////output server list;
+        //for (int i = 0; i < servers.server_list_len; i++) {
+        //    cout << (servers.node+i)->ip << " " << (servers.node+i)->port << endl;
+        //}
+
+        //sendServerListToAll();
+    } else {
+        //server_list servers = buildServerList();
+        ////output server list;
+        //for (int i = 0; i < servers.server_list_len; i++) {
+        //    cout << (servers.node+i)->ip << " " << (servers.node+i)->port << endl;
+        //}
+        ////auto output = send_server_list_1(servers);
+    }
+    std::cout << ".....Completed Server creation.....\n";
 }
 
 PeerClient::~PeerClient() {

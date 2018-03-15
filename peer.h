@@ -17,6 +17,7 @@ public:
     int send_flag(int flag);
     ArticlePoolStruct get_article();
     ArticlePoolStruct getLocalArticle();
+    server_list buildServerList();
     int receiveArticle(ArticlePoolStruct pool);
     int send_article(ArticlePoolStruct);
     int send_server_list(server_list servers);
@@ -26,6 +27,8 @@ public:
     int reply(char * content, int index);
     server_list get_server_list();
     int join_server(IP ip, int port);
+    int joinServerSimple(string ip, int port);
+    bool isCoordinator();
     //PeerClient(string ip, int port);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~PeerClient();
