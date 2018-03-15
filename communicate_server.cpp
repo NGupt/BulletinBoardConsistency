@@ -65,10 +65,13 @@ PeerClient::~PeerClient() {
 int PeerClient::post(char * content) {
     int output;
     if(server_ip == coordinator_ip && server_port == coordinator_port){
-      std::string myString(content, strlen(content));
-      output = articlePool.post(myString);
+        std::string myString(content, strlen(content));
+        //post to articlePool
+        output = articlePool.post(myString);
+
+        //send article to other servers;  
     } else {
-      output = *post_1(content, pclnt);
+        output = *post_1(content, pclnt);
     }
     if (output == 0) {
       std::cout << "Post the article " << content << " fails" << std::endl;
@@ -145,7 +148,19 @@ int PeerClient::send_flag(int flag){
   }
 }
 
+//get the current articlePool
+ArticlePoolStruct PeerClient::getLocalArticle() {
+    return articlePool.getArticle();
+}
+
+//receive an article from another server
+int PeerClient::receiveArticle(ArticlePoolStruct pool) {
+    articlePool = ArticlePool(pool);
+    return 1;
+}
+
 ArticlePoolStruct PeerClient::get_article(){
+    //remote call
   auto output = get_article_1(pclnt);
   if (output == (ArticlePoolStruct *) NULL) {
     clnt_perror (pclnt, "call failed");
@@ -154,7 +169,9 @@ ArticlePoolStruct PeerClient::get_article(){
   }
 }
 
+
 int PeerClient::send_article(ArticlePoolStruct pool){
+    //remote call
   auto output = send_article_1(pool, pclnt);
   if (output == (int *) NULL) {
     clnt_perror (pclnt, "call failed");
@@ -253,17 +270,16 @@ send_flag_1_svc(int flag,  struct svc_req *rqstp)
 ArticlePoolStruct *
 get_article_1_svc(struct svc_req *rqstp)
 {
-	static ArticlePoolStruct  result;
-
-
+	static ArticlePoolStruct  result = now->getLocalArticle();
 	return &result;
 }
 
 int *
 send_article_1_svc(ArticlePoolStruct pool,  struct svc_req *rqstp)
 {
-	static int  result = 1;
-
+    //updates' articlePool
+    now->receiveArticle(pool);
+	static int  result = 1; 
 	return &result;
 }
 

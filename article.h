@@ -7,6 +7,7 @@
 #include <map>
 #include <string>
 #include <cstdio>
+#include "communicate.h"
 using namespace std;
 
 string intToStr(int x);
@@ -24,14 +25,17 @@ private:
     map<int, Article*> articleMap;
     vector<bool> isHeadArticle;
     int count;
+
+    int storeArticle(string article, int father);
+    void readArticleContent(string & articles, Article *now, int level);
+    void getArticleContent(ArticleStruct* &articleP, Article *now, int level);
 public:
     ArticlePool();
+    ArticlePool(ArticlePoolStruct pool);
 
     //store the article into articleMap
     //return the index of the new article
     //if doesn't store successfully, return index 0
-    int storeArticle(string article, int father);
-
     Article* choose(int index);
 
     //reply to article with index
@@ -44,11 +48,9 @@ public:
     //the index == 0 if doesn't post successfully
     int post(string article);
 
-    void getArticleContent(string & articles, Article *now, int level);
-
-
     //read the content of article
     string read();
+    ArticlePoolStruct getArticle();
 
     ArticlePool deepCopy();
     int getCount();

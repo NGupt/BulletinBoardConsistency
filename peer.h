@@ -16,6 +16,8 @@ public:
     CLIENT *pclnt;
     int send_flag(int flag);
     ArticlePoolStruct get_article();
+    ArticlePoolStruct getLocalArticle();
+    int receiveArticle(ArticlePoolStruct pool);
     int send_article(ArticlePoolStruct);
     int send_server_list(server_list servers);
     int post(char * content);

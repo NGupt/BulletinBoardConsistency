@@ -1,0 +1,7 @@
+1. Fix Communication.h
+    - artciles
+    - merge articleStruct and articleContent 
+    - no need to store count, update_count for articlePoolStruct
+2. fix coordinator behavior
+3. char * -> string
+   string -> char *
