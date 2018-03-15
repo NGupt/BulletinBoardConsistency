@@ -41,10 +41,12 @@ PeerClient * now;
 // 
 int PeerClient::joinServerSimple(string ip, int port) {
     //insert ip  into serverList and start a client object
+    cout << "inside join server simple";
     serverList.push_back(make_pair(ip, port));
     if (isCoordinator()) {
       char * currentIp = new char[ip.length() + 1];
       strcpy(currentIp, ip.c_str());
+      cout << "join a server with ip" << currentIp << endl;
       CLIENT *p = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
       if (p == NULL) {
         clnt_pcreateerror (currentIp);
@@ -78,16 +80,6 @@ server_list PeerClient::buildServerList() {
     return res;
 }
 
-int PeerClient::receiveServerList(server_list servers) {
-  serverList.clear();
-  for (int i = 0; i < servers.server_list_len; i++) {
-      IP ip = (servers.server_list_val + i)->ip;
-      string ips(ip, strlen(ip));
-      serverList.push_back(make_pair(ips, (servers.server_list_val+i)->port));
-  }
-  return 1;
-}
-
 void outputServerList(PeerClient *p) {
     //output server list;
     cout << "outputing server list:" << endl;
@@ -97,6 +89,19 @@ void outputServerList(PeerClient *p) {
     }
     cout << endl;
 }
+
+int PeerClient::receiveServerList(server_list servers) {
+  serverList.clear();
+  for (int i = 0; i < servers.server_list_len; i++) {
+      IP ip = (servers.server_list_val + i)->ip;
+      string ips(ip, strlen(ip));
+      serverList.push_back(make_pair(ips, (servers.server_list_val+i)->port));
+  }
+  cout << "receiving --" << endl;
+  outputServerList(this); 
+  return 1;
+}
+
 
 CLIENT * generateClient(char * currentIp) {
   CLIENT *pclnt = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
@@ -109,10 +114,13 @@ CLIENT * generateClient(char * currentIp) {
 
 
 
-void PeerClient::sendServerListToAll() {
+void PeerClient::sendServerListToAll(string ip, int port) {
     server_list servers = buildServerList();
+    cout << serverList.size() << " " << pclnts.size() << endl;
+    send_server_list_1(servers, pclnt);
     for (int i = 0; i < serverList.size(); i++) {
         if (isCoordinator(serverList[i].first, serverList[i].second)) continue;
+        if (serverList[i].first == ip && serverList[i].second == port) continue;
         cout << "Just before sending list to " << serverList[i].first << endl;
         send_server_list_1(servers, pclnts[i]);
     }
@@ -121,9 +129,10 @@ void PeerClient::sendServerListToAll() {
 
 //join a serve to coordinator
 int PeerClient::joinServer(string ip, int port) {
+    cout << "inside join server" << endl;
     joinServerSimple(ip, port);
     outputServerList(this);
-    sendServerListToAll();
+    sendServerListToAll(ip, port);
 }
 
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port){
@@ -146,11 +155,13 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         joinServerSimple(o_ip, port);
     } else {
         cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
+        joinServerSimple(o_ip, port);
+        joinServerSimple(coordinator_ip, coordinator_port);
         join_server_1(o_ip, port, pclnt);
         cout << "after join server" << endl;
         server_list servers = buildServerList();
         //testing send server list
-        auto output = send_server_list_1(servers, pclnt);
+        //auto output = send_server_list_1(servers, pclnt);
         outputServerList(this);
     }
     std::cout << ".....Completed Server creation.....\n";

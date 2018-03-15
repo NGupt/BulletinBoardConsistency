@@ -32,6 +32,7 @@ private:
 public:
     ArticlePool();
     ArticlePool(ArticlePoolStruct pool);
+    ~ArticlePool();
 
     //store the article into articleMap
     //return the index of the new article
@@ -52,6 +53,17 @@ public:
     string read();
     ArticlePoolStruct getArticle();
 
-    ArticlePool deepCopy();
+    //ArticlePool deepCopy();
     int getCount();
+
+    void releaseAll();
+    void releaseArticle(Article *article);
+    
+    void encodeArticle(char *&buffer, Article *article, int father);
+    void encodeString(char *& buffer, string content);
+    void encodeInt(char *& buffer, int x);
+    string decodeString(char *& buffer);
+    int decodeInt(char *& buffer);
+    char * encodeArticlePool();
+    void decodeArticlePool(char * pool);
 };

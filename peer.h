@@ -19,7 +19,7 @@ public:
     ArticlePoolStruct get_article();
     ArticlePoolStruct getLocalArticle();
     server_list buildServerList();
-    void sendServerListToAll();
+    void sendServerListToAll(string origin_ip, int origin_port);
     int receiveServerList(server_list servers);
     int receiveArticle(ArticlePoolStruct pool);
     int send_article(ArticlePoolStruct);

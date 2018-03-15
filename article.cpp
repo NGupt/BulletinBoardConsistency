@@ -35,10 +35,34 @@ ArticlePool::ArticlePool(ArticlePoolStruct pool) {
         }
     }
 }
+
 //
-////TODO
-//~ArticlePool() {
-//}
+//TODO
+ArticlePool::~ArticlePool() {
+    releaseAll();
+}
+
+void ArticlePool::releaseArticle(Article * article) {
+    for (int i = 0; i < article->nextArticles.size(); i++) {
+        releaseArticle(article->nextArticles[i]);
+        delete article->nextArticles[i];
+    }
+    article->nextArticles.clear();
+    article->content.clear();
+}
+
+
+void ArticlePool::releaseAll() {
+    for (int i = 1; i <= count; i++) {
+        if (isHeadArticle[i]) {
+            releaseArticle(articleMap[i]);
+            delete articleMap[i];
+        }
+    }
+    articleMap.clear();
+    isHeadArticle.clear();
+    count = 0;
+}
 
 int ArticlePool::storeArticle(string article, int father) {
     if (father > 0 && father <= count) { 
@@ -100,20 +124,33 @@ void ArticlePool::readArticleContent(string & articles, Article *now, int level)
 }
 
 
+//return an article pointer which is a deep copy of the given one;
+//ArticlePool ArticlePool::deepCopy(Article *article) {
+//    Article *res = new Article();
+//    res->index = article->index;
+//    res->content = article->content;
+//    for (int i = 0; i < article->nextArticles.size(); i++) {
+//        res->nextArticles.push_back(deepCopy(article->nextArticles[i]));
+//    }
+//    return res;
+//}
 
-ArticlePool ArticlePool::deepCopy() {
-    ArticlePool newPool = ArticlePool();
-    cout << newPool.count << endl;
-    cout << count << endl;
-    newPool.count = count;
-    for (int i = 0; i < isHeadArticle.size(); i++) {
-        newPool.isHeadArticle.push_back(isHeadArticle[i]);
-    }
-    for (map<int, Article *>::iterator it = articleMap.begin(); it != articleMap.end(); it++) {
-        newPool.articleMap[it->first] = it->second;
-    }
-    return newPool;
-}
+
+//ArticlePool ArticlePool::deepCopy() {
+//    ArticlePool newPool = ArticlePool();
+//    cout << newPool.count << endl;
+//    cout << count << endl;
+//    newPool.count = count;
+//    for (int i = 0; i < isHeadArticle.size(); i++) {
+//        newPool.isHeadArticle.push_back(isHeadArticle[i]);
+//    }
+//    for (int i = 1; i <= count; i++) {
+//        if (isHeadArticles[i]) {
+//            newPool.articleMap[it->first] = deepCopy(it->second);
+//        }
+//    }
+//    return newPool;
+//}
 
 
     //read the content of article
@@ -156,9 +193,7 @@ ArticlePoolStruct ArticlePool::getArticle() {
             int pos = 0;
             getArticleContent(articleP, now, 0);
         }
-    }
-    return res;
-}
+    } return res; }
 
 void PrintArticlePoolStruct(ArticlePoolStruct pool) {
     cout << "Count: " << pool.count << "\nupdate_count: " << pool.update_count << endl;
@@ -176,11 +211,85 @@ void PrintArticlePoolStruct(ArticlePoolStruct pool) {
 }
 
 
+void ArticlePool::encodeInt(char *&buffer, int x) {
+    *buffer = x & 0xff; 
+    *(++buffer) = (x >> 8) & 0xff;
+    *(++buffer) = (x >> 16) & 0xff;
+    *(++buffer) = (x >> 24) & 0xff;
+    buffer++;
+    char *newbuffer = buffer - 4;
+}
+
+void ArticlePool::encodeString(char *&buffer, string s) {
+   strcpy(buffer, s.c_str());
+   buffer += MAXSTRING;
+}
+
+void ArticlePool::encodeArticle(char *& buffer, Article * article, int father) {
+    encodeInt(buffer, father);
+    encodeString(buffer, article->content);
+    for (int i = 0; i < article->nextArticles.size(); i++) {
+        encodeArticle(buffer, article->nextArticles[i], article->index);
+    }
+}
+
+int ArticlePool::decodeInt(char *&buffer) {
+    int x = *buffer;
+    x = x | (*(++buffer) << 8); 
+    x = x | (*(++buffer) << 16);
+    x = x | (*(++buffer) << 24);
+    buffer++;
+    return x;
+}
+
+string ArticlePool::decodeString(char *&buffer) {
+    string s(buffer, strlen(buffer));
+    buffer += MAXSTRING;
+    return s;
+}
+
+char * ArticlePool::encodeArticlePool() {
+    //store count(4)
+    //content(101) father(4)
+    char * res = new char[4 + (MAXSTRING + 4) * count];
+    char * r = res;
+    encodeInt(res, count); 
+    for (int i = 1; i <= count; i++) {
+        if (isHeadArticle[i - 1]) {
+            encodeArticle(res, articleMap[i], 0);
+        }
+    } return r;
+}
+
+
+
+void ArticlePool::decodeArticlePool(char *article) {
+    releaseAll();
+    int size = decodeInt(article);
+    for (int i = 0; i < size; i++) {
+        int father = decodeInt(article);
+        string s = decodeString(article); 
+        storeArticle(s, father);
+    }
+}
+
+
+void PrintArticlePoolMessage(ArticlePool *p, char *pool) {
+    int size = p->decodeInt(pool);
+    cout << "Count: " << size << endl;
+    for (int i = 0; i < size; i++) {
+        int father = p->decodeInt(pool);
+        string s = p->decodeString(pool); 
+        cout << "Father Index: " << father << "\n Content: " << s << endl;
+    }
+}
+
+
 
 //int main() {
 //    ArticlePool articlePool;
 //    //------------test article pool-----/
-//    ArticlePool newPool2 = articlePool.deepCopy();
+//    ArticlePool newPool2(articlePool.getArticle());
 //    articlePool.post("Article 1");
 //    cout << articlePool.read() << endl;
 //    int id1 = articlePool.post("Article 2");
@@ -199,15 +308,22 @@ void PrintArticlePoolStruct(ArticlePoolStruct pool) {
 //    if (now != NULL) 
 //    cout << now->index << " " << now->content << endl;
 //    now = articlePool.choose(6);
-//    ArticlePool newPool = articlePool.deepCopy();
+//    ArticlePool newPool(articlePool.getArticle());
 //    newPool.post("newnewnew");
 //    cout << articlePool.read() << endl;
 //    cout << newPool.read() << endl;
+//
 //    cout << "testing article pool struct" << endl;
 //    cout << articlePool.read() << endl;
 //    ArticlePoolStruct pool = articlePool.getArticle();
 //    PrintArticlePoolStruct(pool);
 //    ArticlePool newPool3(pool);
+//    newPool3.post("a new article");
 //    cout << newPool3.read() << endl;
+//    cout << "testing udp article message" << endl;
+//    char * poolMessage = newPool3.encodeArticlePool();
+//    PrintArticlePoolMessage(&newPool3, poolMessage);
+//    articlePool.decodeArticlePool(poolMessage);
+//    cout << articlePool.read();
 //    return 0;
 //}
