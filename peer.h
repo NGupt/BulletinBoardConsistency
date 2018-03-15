@@ -3,23 +3,26 @@
 #include "communicate.h"
 #include "article.h"
 #include <set>
+#include <thread>
+
 class PeerClient {
-  string server_ip;
-	int server_port;
-	string coordinator_ip;
-	int coordinator_port;
-	ArticlePool articlePool;
-	// int data;
-	//int timeStamp;
-	vector<pair<string, int>> serverList;
+
 public:
     CLIENT *pclnt; //coordinator
+    string server_ip;
+    int server_port;
+    string coordinator_ip;
+    int coordinator_port;
+    ArticlePool articlePool;
+    // int data;
+    //int timeStamp;
+    vector<pair<string, int>> serverList;
     vector<CLIENT *> pclnts; //serverlists
     int send_flag(int flag);
     ArticlePoolStruct get_article();
     ArticlePoolStruct getLocalArticle();
     server_list buildServerList();
-    void sendServerListToAll(string origin_ip, int origin_port);
+    void sendServerListToAll();
     int receiveServerList(server_list servers);
     int receiveArticle(ArticlePoolStruct pool);
     int send_article(ArticlePoolStruct);
@@ -36,7 +39,17 @@ public:
     int joinServer(string ip, int port);
     bool isCoordinator();
     bool isCoordinator(string ip, int port);
+    char* listen_for_articles(int port);
+    char* listen_for_servers(int port);
+    bool articleThread;
+    bool serverListThread;
+    std::thread c_article_thread; //thread for coordinator to send article pool
+    std::thread c_servers_thread; //thread for coordinator to send server list
     //PeerClient(string ip, int port);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~PeerClient();
 };
+
+ArticlePoolStruct ListenArticles(PeerClient *now);
+
+server_list ListenServers(PeerClient *now);

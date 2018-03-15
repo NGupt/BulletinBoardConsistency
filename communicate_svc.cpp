@@ -162,7 +162,7 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
         _xdr_argument = (xdrproc_t) xdr_join_server_1_argument;
         _xdr_result = (xdrproc_t) xdr_int;
         local = (char *(*)(char *, struct svc_req *)) _join_server_1;
-        break;	
+        break;
 
 	default:
 		svcerr_noproc (transp);

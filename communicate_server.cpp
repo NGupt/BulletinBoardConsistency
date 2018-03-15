@@ -24,29 +24,118 @@ using namespace std;
 
 PeerClient * now;
 
-// extern map<pair<string, int>, PeerServer*> simulateUDP;
+ArticlePoolStruct ListenArticles(PeerClient *now){
+  while (now->articleThread){
+    std::cout << "Listening for articles " << endl;
+    char * articles = now->listen_for_articles(now->coordinator_port);
+  }
+  ArticlePoolStruct pool;
+  return pool;
+}
 
-//////////////////////////////////// peer client ////////////////////
-//class PeerClient;
+server_list ListenServers(PeerClient *now){
+  while(now->serverListThread){
+    std::cout << "Listening for server list " << endl;
+    char *servers = now->listen_for_servers(now->coordinator_port);
+  }
+  server_list s;
+  return s;
+}
 
-//
-// PeerClient::PeerClient(string ip, int port){
-//   this->server_ip = ip;
-//   this->server_port = port;
-//   this->coordinator_ip = ip;
-//   this->coordinator_port = port;
-//   now = this;
-//   std::cout << ".....Completed peer coordinator creation.....\n";
-// }
-// 
+char* PeerClient::listen_for_servers(int port){
+  // struct sockaddr_in si_other, client_addr;
+  //         int i;
+  //         socklen_t slen = sizeof(si_other);
+  //         int optval = 1;
+  //
+  //         if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+  //             perror("socket()");
+  //             exit(1);
+  //         }
+  //         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+  //
+  //         memset((char *) &si_other, 0, sizeof(si_other));
+  //         si_other.sin_family = AF_INET;
+  //         si_other.sin_port = htons(port);
+  //
+  //         if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
+  //             fprintf(stderr, "inet_aton failed\n");
+  //             exit(1);
+  //         }
+  //
+  //         bzero((char *) &client_addr, sizeof(client_addr));
+  //         client_addr.sin_family = AF_INET;
+  //         client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  //         client_addr.sin_port = htons((unsigned short) port);
+  //         if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
+  //             fprintf(stderr, "could not bind \n");
+  //             close(sock);
+  //             exit(1);
+  //         }
+  //
+  // 	// Clear the buffer by filling null, it might have previously received data
+  //         memset(article, '\0', MAX_ARTICLE_LENGTH);
+  //
+  //         // Try to receive some data; This is a blocking call
+  //         if (recvfrom(sock, article, MAX_ARTICLE_LENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
+  //             perror("recvfrom()");
+  //             exit(1);
+  //         }
+  //         Article art(article);
+  //         std::cout << "..... \"" << art.content << "\" RECEIVED for \"" << art.type << ";" << art.orig << ";" << art.org << "\" .....\n";
+
+}
+
+char* PeerClient::listen_for_articles(int port){
+  // struct sockaddr_in si_other, client_addr;
+  //         int i;
+  //         socklen_t slen = sizeof(si_other);
+  //         int optval = 1;
+  //
+  //         if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+  //             perror("socket()");
+  //             exit(1);
+  //         }
+  //         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+  //
+  //         memset((char *) &si_other, 0, sizeof(si_other));
+  //         si_other.sin_family = AF_INET;
+  //         si_other.sin_port = htons(port);
+  //
+  //         if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
+  //             fprintf(stderr, "inet_aton failed\n");
+  //             exit(1);
+  //         }
+  //
+  //         bzero((char *) &client_addr, sizeof(client_addr));
+  //         client_addr.sin_family = AF_INET;
+  //         client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  //         client_addr.sin_port = htons((unsigned short) port);
+  //         if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
+  //             fprintf(stderr, "could not bind \n");
+  //             close(sock);
+  //             exit(1);
+  //         }
+  //
+  // 	// Clear the buffer by filling null, it might have previously received data
+  //         memset(article, '\0', MAX_ARTICLE_LENGTH);
+  //
+  //         // Try to receive some data; This is a blocking call
+  //         if (recvfrom(sock, article, MAX_ARTICLE_LENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
+  //             perror("recvfrom()");
+  //             exit(1);
+  //         }
+  //         Article art(article);
+  //         std::cout << "..... \"" << art.content << "\" RECEIVED for \"" << art.type << ";" << art.orig << ";" << art.org << "\" .....\n";
+
+}
+
 int PeerClient::joinServerSimple(string ip, int port) {
     //insert ip  into serverList and start a client object
-    cout << "inside join server simple";
     serverList.push_back(make_pair(ip, port));
     if (isCoordinator()) {
       char * currentIp = new char[ip.length() + 1];
       strcpy(currentIp, ip.c_str());
-      cout << "join a server with ip" << currentIp << endl;
       CLIENT *p = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
       if (p == NULL) {
         clnt_pcreateerror (currentIp);
@@ -74,10 +163,20 @@ server_list PeerClient::buildServerList() {
         node *p = res.server_list_val + pos;
         p->ip = new char[serverList[i].first.length() + 1];
         strcpy(p->ip, serverList[i].first.c_str());
-        p->port = serverList[i].second; 
+        p->port = serverList[i].second;
         pos++;
     }
     return res;
+}
+
+int PeerClient::receiveServerList(server_list servers) {
+  serverList.clear();
+  for (int i = 0; i < servers.server_list_len; i++) {
+      IP ip = (servers.server_list_val + i)->ip;
+      string ips(ip, strlen(ip));
+      serverList.push_back(make_pair(ips, (servers.server_list_val+i)->port));
+  }
+  return 1;
 }
 
 void outputServerList(PeerClient *p) {
@@ -90,19 +189,6 @@ void outputServerList(PeerClient *p) {
     cout << endl;
 }
 
-int PeerClient::receiveServerList(server_list servers) {
-  serverList.clear();
-  for (int i = 0; i < servers.server_list_len; i++) {
-      IP ip = (servers.server_list_val + i)->ip;
-      string ips(ip, strlen(ip));
-      serverList.push_back(make_pair(ips, (servers.server_list_val+i)->port));
-  }
-  cout << "receiving --" << endl;
-  outputServerList(this); 
-  return 1;
-}
-
-
 CLIENT * generateClient(char * currentIp) {
   CLIENT *pclnt = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
   if (pclnt == NULL) {
@@ -114,13 +200,10 @@ CLIENT * generateClient(char * currentIp) {
 
 
 
-void PeerClient::sendServerListToAll(string ip, int port) {
+void PeerClient::sendServerListToAll() {
     server_list servers = buildServerList();
-    cout << serverList.size() << " " << pclnts.size() << endl;
-    send_server_list_1(servers, pclnt);
     for (int i = 0; i < serverList.size(); i++) {
         if (isCoordinator(serverList[i].first, serverList[i].second)) continue;
-        if (serverList[i].first == ip && serverList[i].second == port) continue;
         cout << "Just before sending list to " << serverList[i].first << endl;
         send_server_list_1(servers, pclnts[i]);
     }
@@ -129,10 +212,9 @@ void PeerClient::sendServerListToAll(string ip, int port) {
 
 //join a serve to coordinator
 int PeerClient::joinServer(string ip, int port) {
-    cout << "inside join server" << endl;
     joinServerSimple(ip, port);
     outputServerList(this);
-    sendServerListToAll(ip, port);
+    sendServerListToAll();
 }
 
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port){
@@ -141,6 +223,8 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     this->coordinator_ip = coordinator_ip;
     this->coordinator_port = coordinator_port;
     now = this;
+    this->articleThread = false;
+    this->serverListThread = false;
     char * c_ip = new char [coordinator_ip.length()+1];
     strcpy (c_ip, coordinator_ip.c_str());
     char * o_ip = new char [ip.length()+1];
@@ -155,13 +239,18 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         joinServerSimple(o_ip, port);
     } else {
         cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
-        joinServerSimple(o_ip, port);
-        joinServerSimple(coordinator_ip, coordinator_port);
         join_server_1(o_ip, port, pclnt);
         cout << "after join server" << endl;
+        this->articleThread = true;
+        this->c_article_thread = std::thread(ListenArticles, this);
+        this->serverListThread = true;
+        this->c_servers_thread = std::thread(ListenServers, this);
+
+        this->c_servers_thread.detach();
+        this->c_article_thread.detach();
         server_list servers = buildServerList();
         //testing send server list
-        //auto output = send_server_list_1(servers, pclnt);
+        auto output = send_server_list_1(servers, pclnt);
         outputServerList(this);
     }
     std::cout << ".....Completed Server creation.....\n";
