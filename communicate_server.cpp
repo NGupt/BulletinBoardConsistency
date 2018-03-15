@@ -130,6 +130,27 @@ char* PeerClient::listen_for_articles(int port){
 
 }
 
+void PeerClient::decodeServerList(char * ser) {
+    //vector<pair<string, int>> servers;
+    serverList.clear();
+    int size = decodeInt(ser);
+    for (int i = 0; i < size; i++) { 
+        serverList.push_back(make_pair(decodeString(ser), decodeInt(ser)));
+    }
+}
+
+char * PeerClient::encodeServerList() {
+    //
+    char * res = new char[4 + serverList.size() * (MAXIP + 4)]; 
+    char *r =res;
+    encodeInt(res, serverList.size());
+    for (int i = 0; i < serverList.size(); i++) {
+        encodeString(res, serverList[i].first, MAXIP);
+        encodeInt(res, serverList[i].second);
+    }
+    return r;
+}
+
 int PeerClient::joinServerSimple(string ip, int port) {
     //insert ip  into serverList and start a client object
     serverList.push_back(make_pair(ip, port));
@@ -237,6 +258,8 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     if (isCoordinator()) {
         cout << "is coordinator" << endl;
         joinServerSimple(o_ip, port);
+        decodeServerList(encodeServerList());
+        outputServerList(this);
     } else {
         cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
         join_server_1(o_ip, port, pclnt);
@@ -251,6 +274,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         server_list servers = buildServerList();
         //testing send server list
         auto output = send_server_list_1(servers, pclnt);
+        decodeServerList(encodeServerList());
         outputServerList(this);
     }
     std::cout << ".....Completed Server creation.....\n";

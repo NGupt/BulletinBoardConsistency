@@ -16,6 +16,8 @@ public:
     ArticlePool articlePool;
     // int data;
     //int timeStamp;
+    void decodeServerList(char *);
+    char *encodeServerList();
     vector<pair<string, int>> serverList;
     vector<CLIENT *> pclnts; //serverlists
     int send_flag(int flag);

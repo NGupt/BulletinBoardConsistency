@@ -11,7 +11,7 @@
 using namespace std;
 
 string intToStr(int x);
-void encodeString(char *& buffer, string content);
+void encodeString(char *& buffer, string content, int len);
 void encodeInt(char *& buffer, int x);
 string decodeString(char *& buffer);
 int decodeInt(char *& buffer);

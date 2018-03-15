@@ -193,7 +193,9 @@ ArticlePoolStruct ArticlePool::getArticle() {
             int pos = 0;
             getArticleContent(articleP, now, 0);
         }
-    } return res; }
+    }
+    return res;
+}
 
 void PrintArticlePoolStruct(ArticlePoolStruct pool) {
     cout << "Count: " << pool.count << "\nupdate_count: " << pool.update_count << endl;
@@ -220,14 +222,14 @@ void encodeInt(char *&buffer, int x) {
     char *newbuffer = buffer - 4;
 }
 
-void encodeString(char *&buffer, string s) {
+void encodeString(char *&buffer, string s, int len) {
    strcpy(buffer, s.c_str());
-   buffer += MAXSTRING;
+   buffer += len;
 }
 
 void ArticlePool::encodeArticle(char *& buffer, Article * article, int father) {
     encodeInt(buffer, father);
-    encodeString(buffer, article->content);
+    encodeString(buffer, article->content, MAXSTRING);
     for (int i = 0; i < article->nextArticles.size(); i++) {
         encodeArticle(buffer, article->nextArticles[i], article->index);
     }
