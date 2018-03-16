@@ -11,11 +11,16 @@
 #include <string.h>
 #include <memory.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include "peer.h"
 #include <iostream>
 #include "article.h"
+#include <cstring>
+#include <netdb.h>
+#include <unistd.h>
 using namespace std;
+using std::to_string;
 
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
@@ -24,110 +29,175 @@ using namespace std;
 
 PeerClient * now;
 
-ArticlePoolStruct ListenArticles(PeerClient *now){
+void ListenArticles(PeerClient *now){
+  char *message;
   while (now->articleThread){
     std::cout << "Listening for articles " << endl;
-    char * articles = now->listen_for_articles(now->coordinator_port);
+    message = now->listen_for_articles(now->coordinator_port);
   }
-  ArticlePoolStruct pool;
-  return pool;
+  now->articlePool.decodeArticlePool(message);
 }
 
-server_list ListenServers(PeerClient *now){
+void ListenServers(PeerClient *now){
+  char *message;
   while(now->serverListThread){
     std::cout << "Listening for server list " << endl;
-    char *servers = now->listen_for_servers(now->coordinator_port);
+    message = now->listen_for_servers(now->coordinator_port);
   }
-  server_list s;
-  return s;
+  now->decodeServerList(message);
 }
 
 char* PeerClient::listen_for_servers(int port){
-  // struct sockaddr_in si_other, client_addr;
-  //         int i;
-  //         socklen_t slen = sizeof(si_other);
-  //         int optval = 1;
-  //
-  //         if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-  //             perror("socket()");
-  //             exit(1);
-  //         }
-  //         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
-  //
-  //         memset((char *) &si_other, 0, sizeof(si_other));
-  //         si_other.sin_family = AF_INET;
-  //         si_other.sin_port = htons(port);
-  //
-  //         if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
-  //             fprintf(stderr, "inet_aton failed\n");
-  //             exit(1);
-  //         }
-  //
-  //         bzero((char *) &client_addr, sizeof(client_addr));
-  //         client_addr.sin_family = AF_INET;
-  //         client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  //         client_addr.sin_port = htons((unsigned short) port);
-  //         if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
-  //             fprintf(stderr, "could not bind \n");
-  //             close(sock);
-  //             exit(1);
-  //         }
-  //
-  // 	// Clear the buffer by filling null, it might have previously received data
-  //         memset(article, '\0', MAX_ARTICLE_LENGTH);
-  //
-  //         // Try to receive some data; This is a blocking call
-  //         if (recvfrom(sock, article, MAX_ARTICLE_LENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
-  //             perror("recvfrom()");
-  //             exit(1);
-  //         }
-  //         Article art(article);
-  //         std::cout << "..... \"" << art.content << "\" RECEIVED for \"" << art.type << ";" << art.orig << ";" << art.org << "\" .....\n";
+    struct sockaddr_in si_other, client_addr;
+    int i;
+    socklen_t slen = sizeof(si_other);
+    int optval = 1;
+    if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        perror("socket()");
+        exit(1);
+    }
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
 
+    memset((char *) &si_other, 0, sizeof(si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(port);
+    const char *ip = (this->coordinator_ip).c_str();
+    if (inet_aton(ip, &si_other.sin_addr) == 0) {
+        fprintf(stderr, "inet_aton failed\n");
+        exit(1);
+    }
+
+    bzero((char *) &client_addr, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    client_addr.sin_port = htons((unsigned short) port);
+    if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
+        fprintf(stderr, "could not bind \n");
+        close(sock);
+        exit(1);
+    }
+
+    // Clear the buffer by filling null, it might have previously received data
+    memset(servers, '\0', MAXSERVERS);
+
+    // Try to receive some data; This is a blocking call
+    if (recvfrom(sock, servers, MAXSERVERS, 0, (struct sockaddr *) &si_other, &slen) == -1) {
+        perror("recvfrom()");
+        exit(1);
+    }
+    std::cout << "Server list received from udp in string format: " << servers << endl;
+    return servers;
 }
 
 char* PeerClient::listen_for_articles(int port){
-  // struct sockaddr_in si_other, client_addr;
-  //         int i;
-  //         socklen_t slen = sizeof(si_other);
-  //         int optval = 1;
-  //
-  //         if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-  //             perror("socket()");
-  //             exit(1);
-  //         }
-  //         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
-  //
-  //         memset((char *) &si_other, 0, sizeof(si_other));
-  //         si_other.sin_family = AF_INET;
-  //         si_other.sin_port = htons(port);
-  //
-  //         if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
-  //             fprintf(stderr, "inet_aton failed\n");
-  //             exit(1);
-  //         }
-  //
-  //         bzero((char *) &client_addr, sizeof(client_addr));
-  //         client_addr.sin_family = AF_INET;
-  //         client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  //         client_addr.sin_port = htons((unsigned short) port);
-  //         if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
-  //             fprintf(stderr, "could not bind \n");
-  //             close(sock);
-  //             exit(1);
-  //         }
-  //
-  // 	// Clear the buffer by filling null, it might have previously received data
-  //         memset(article, '\0', MAX_ARTICLE_LENGTH);
-  //
-  //         // Try to receive some data; This is a blocking call
-  //         if (recvfrom(sock, article, MAX_ARTICLE_LENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
-  //             perror("recvfrom()");
-  //             exit(1);
-  //         }
-  //         Article art(article);
-  //         std::cout << "..... \"" << art.content << "\" RECEIVED for \"" << art.type << ";" << art.orig << ";" << art.org << "\" .....\n";
+    struct sockaddr_in si_other, client_addr;
+    int i;
+    socklen_t slen = sizeof(si_other);
+    int optval = 1;
+    if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        perror("socket()");
+        exit(1);
+    }
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
 
+    memset((char *) &si_other, 0, sizeof(si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(port);
+    const char *ip = (this->coordinator_ip).c_str();
+    if (inet_aton(ip, &si_other.sin_addr) == 0) {
+        fprintf(stderr, "inet_aton failed\n");
+        exit(1);
+    }
+
+    bzero((char *) &client_addr, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    client_addr.sin_port = htons((unsigned short) port);
+    if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
+        fprintf(stderr, "could not bind \n");
+        close(sock);
+        exit(1);
+    }
+
+  	// Clear the buffer by filling null, it might have previously received data
+    memset(articles, '\0', MAXPOOLLENGTH);
+
+    // Try to receive some data; This is a blocking call
+    if (recvfrom(sock, articles, MAXPOOLLENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
+        perror("recvfrom()");
+        exit(1);
+    }
+    std::cout << "Aricle pool string received from udp: " << articles << endl;
+    return articles;
+}
+
+int PeerClient::send_articles(string s_ip, int s_port, const char *articles) {
+    //std::string temp_ip(s_ip, strlen(s_ip));
+    const char *ip = s_ip.c_str();
+
+    const char *port = (to_string(s_port)).c_str();
+
+    struct addrinfo sendaddr;
+    struct addrinfo *res = 0;
+
+    memset(&sendaddr, 0, sizeof(sendaddr));
+    sendaddr.ai_family = AF_UNSPEC;
+    sendaddr.ai_socktype = SOCK_DGRAM;
+    sendaddr.ai_protocol = 0;
+    sendaddr.ai_flags = AI_ADDRCONFIG;
+
+    if (getaddrinfo(ip, port, &sendaddr, &res) != 0) {
+        return 5; // 5 => send_articles failed
+    }
+
+    int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd == -1) {
+        freeaddrinfo(res);
+        return 5; // 5 => send_articles failed
+    }
+
+    if (sendto(fd, articles, strlen(articles), 0, res->ai_addr, res->ai_addrlen) == -1) {
+        freeaddrinfo(res);
+        close(fd);
+        return 5; // 5 => send_articles failed
+    }
+    freeaddrinfo(res);
+    close(fd);
+    return 0;
+}
+
+int PeerClient::send_servers(string s_ip, int s_port, const char *servers) {
+    //std::string temp_ip(s_ip, strlen(s_ip));
+    const char *ip = s_ip.c_str();
+    const char *port = (to_string(s_port)).c_str();
+
+    struct addrinfo sendaddr;
+    struct addrinfo *res = 0;
+
+    memset(&sendaddr, 0, sizeof(sendaddr));
+    sendaddr.ai_family = AF_UNSPEC;
+    sendaddr.ai_socktype = SOCK_DGRAM;
+    sendaddr.ai_protocol = 0;
+    sendaddr.ai_flags = AI_ADDRCONFIG;
+
+    if (getaddrinfo(ip, port, &sendaddr, &res) != 0) {
+        return 5; // 5 => send_servers failed
+    }
+
+    int fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd == -1) {
+        freeaddrinfo(res);
+        return 5; // 5 => send_servers failed
+    }
+
+    if (sendto(fd, servers, strlen(servers), 0, res->ai_addr, res->ai_addrlen) == -1) {
+        freeaddrinfo(res);
+        close(fd);
+        return 5; // 5 => send_servers failed
+    }
+    freeaddrinfo(res);
+    close(fd);
+    return 0;
 }
 
 void PeerClient::decodeServerList(char * ser) {
@@ -135,7 +205,7 @@ void PeerClient::decodeServerList(char * ser) {
     serverList.clear();
     int size = decodeInt(ser);
     //cout << "size: " << size << endl;
-    for (int i = 0; i < size; i++) { 
+    for (int i = 0; i < size; i++) {
         string s = decodeString(ser, MAXIP);
         int port = decodeInt(ser);
         serverList.push_back(make_pair(s, port));
@@ -144,7 +214,7 @@ void PeerClient::decodeServerList(char * ser) {
 
 char * PeerClient::encodeServerList() {
     //
-    char * res = new char[4 + serverList.size() * (MAXIP + 4)]; 
+    char * res = new char[4 + serverList.size() * (MAXIP + 4)];
     char *r =res;
     encodeInt(res, serverList.size());
     for (int i = 0; i < serverList.size(); i++) {
@@ -239,7 +309,8 @@ void PeerClient::sendServerListToAll() {
     for (int i = 0; i < serverList.size(); i++) {
         if (isCoordinator(serverList[i].first, serverList[i].second)) continue;
         cout << "Just before sending list to " << serverList[i].first << endl;
-        send_server_list_1(servers, pclnts[i]);
+        //send_server_list_1(servers, pclnts[i]);
+        send_servers(serverList[i].first, this->coordinator_port,encodeServerList());
     }
 }
 

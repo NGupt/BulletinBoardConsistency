@@ -9,6 +9,9 @@ class PeerClient {
 
 public:
     CLIENT *pclnt; //coordinator
+    int sock;
+    char articles[MAXPOOLLENGTH];
+    char servers[MAXSERVERS];
     string server_ip;
     int server_port;
     string coordinator_ip;
@@ -43,6 +46,8 @@ public:
     bool isCoordinator(string ip, int port);
     char* listen_for_articles(int port);
     char* listen_for_servers(int port);
+    int send_articles(string ip, int port, const char *articles);
+    int send_servers(string ip, int port, const char *servers);
     bool articleThread;
     bool serverListThread;
     std::thread c_article_thread; //thread for coordinator to send article pool
@@ -52,6 +57,6 @@ public:
     ~PeerClient();
 };
 
-ArticlePoolStruct ListenArticles(PeerClient *now);
+void ListenArticles(PeerClient *now);
 
-server_list ListenServers(PeerClient *now);
+void ListenServers(PeerClient *now);

@@ -17,6 +17,8 @@ extern "C" {
 #define MAXSERVERS 10
 #define MAXARTICLES 100
 #define MAXSTRING 101
+#define MAXPOOLLENGTH 10505
+
 
 typedef char *str;
 
