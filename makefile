@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++0x
+CXXFLAGS=-std=c++0x -g -fpermissive
 LIBS= -lnsl  -lpthread
 RPCGEN_FILE=communicate.x
 
@@ -7,7 +7,7 @@ SVC=communicate_svc.cpp
 CLI=communicate_clnt.cpp
 XDR=communicate_xdr.cpp
 
-SVC_SRC= $(XDR) $(SVC) communicate_server.cpp article.cpp
+SVC_SRC= $(XDR) $(SVC) new_server.cpp communicate_server.cpp article.cpp
 CLI_SRC=$(XDR) $(CLI) communicate_client.cpp
 
 CLIENT=clientside

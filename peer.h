@@ -4,12 +4,13 @@
 #include "article.h"
 #include <set>
 #include <thread>
-
+#include "socket.h"
 class PeerClient {
 
 public:
     CLIENT *pclnt; //coordinator
     int sock;
+    UdpSocket *sock_fd;
     char articles[MAXPOOLLENGTH];
     char servers[MAXSERVERS];
     string server_ip;
@@ -17,6 +18,7 @@ public:
     string coordinator_ip;
     int coordinator_port;
     ArticlePool articlePool;
+    //UdpSocket sock_fd;//(const char *address, int &port);
     // int data;
     //int timeStamp;
     void decodeServerList(char *);

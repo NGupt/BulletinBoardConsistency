@@ -19,6 +19,7 @@
 #include <cstring>
 #include <netdb.h>
 #include <unistd.h>
+#include "socket.h"
 using namespace std;
 using std::to_string;
 
@@ -44,7 +45,7 @@ void ListenServers(PeerClient *now){
     std::cout << "Listening for server list " << endl;
     message = now->listen_for_servers(now->coordinator_port);
   }
-  now->decodeServerList(message);
+  //now->decodeServerList(message);
 }
 
 char* PeerClient::listen_for_servers(int port){
@@ -85,7 +86,24 @@ char* PeerClient::listen_for_servers(int port){
         perror("recvfrom()");
         exit(1);
     }
-    std::cout << "Server list received from udp in string format: " << servers << endl;
+    // struct sockaddr_in addr;
+    //     memset((char *)&addr, 0, sizeof(addr));
+    //     addr.sin_family = AF_INET;
+    //     addr.sin_port = htons(port);
+    //     std::string s_ip = now->coordinator_ip;
+    //     const char *ip = s_ip.c_str();
+    //         if(inet_aton(ip, &(addr.sin_addr)) != 1) {
+    //             throw Exception("Invalid address format");
+    //         }
+    //
+    //     sock_fd = new UdpSocket(NULL, port);
+    // char *buf;
+    // char random;
+    // cout << "before receiving on " << port << "from " << ip << endl;
+    // cin >> random ;
+    // int bytes = sock_fd->recvfrom(buf, 10, &addr);
+    // std::cout << "Server list received from udp in string format: " << buf << endl;
+
     return servers;
 }
 
@@ -167,10 +185,10 @@ int PeerClient::send_articles(string s_ip, int s_port, const char *articles) {
 }
 
 int PeerClient::send_servers(string s_ip, int s_port, const char *servers) {
-    //std::string temp_ip(s_ip, strlen(s_ip));
+    // //std::string temp_ip(s_ip, strlen(s_ip));
     const char *ip = s_ip.c_str();
     const char *port = (to_string(s_port)).c_str();
-
+    //
     struct addrinfo sendaddr;
     struct addrinfo *res = 0;
 
@@ -197,6 +215,20 @@ int PeerClient::send_servers(string s_ip, int s_port, const char *servers) {
     }
     freeaddrinfo(res);
     close(fd);
+    // struct sockaddr_in addr;
+    //     memset((char *)&addr, 0, sizeof(addr));
+    //     addr.sin_family = AF_INET;
+    //     addr.sin_port = htons(s_port);
+    //         if(inet_aton(ip, &(addr.sin_addr)) != 1) {
+    //             throw Exception("Invalid address format");
+    //         }
+    //         sock_fd = new UdpSocket(NULL, s_port);
+    //
+    // cout << "sending " << servers << "ip " << ip << s_port << endl;
+    // char buf;
+    // cin >> buf ;
+    // int bytes = sock_fd->sendto(servers, strlen(servers), &addr);
+    // cout << "sent " << bytes << endl;
     return 0;
 }
 
@@ -237,16 +269,16 @@ char * PeerClient::encodeServerList() {
 int PeerClient::joinServerSimple(string ip, int port) {
     //insert ip  into serverList and start a client object
     serverList.push_back(make_pair(ip, port));
-    if (isCoordinator()) {
-      char * currentIp = new char[ip.length() + 1];
-      strcpy(currentIp, ip.c_str());
-      CLIENT *p = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
-      if (p == NULL) {
-        clnt_pcreateerror (currentIp);
-        exit (1);
-      }
-      pclnts.push_back(pclnt);
-    }
+    // if (isCoordinator()) {
+    //   char * currentIp = new char[ip.length() + 1];
+    //   strcpy(currentIp, ip.c_str());
+    //   CLIENT *p = clnt_create(currentIp, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
+    //   if (p == NULL) {
+    //     clnt_pcreateerror (currentIp);
+    //     exit (1);
+    //   }
+    //   pclnts.push_back(pclnt);
+    // }
     return 1;
 }
 
@@ -305,12 +337,12 @@ CLIENT * generateClient(char * currentIp) {
 
 
 void PeerClient::sendServerListToAll() {
-    server_list servers = buildServerList();
+    //server_list servers = buildServerList();
     for (int i = 0; i < serverList.size(); i++) {
         if (isCoordinator(serverList[i].first, serverList[i].second)) continue;
         cout << "Just before sending list to " << serverList[i].first << endl;
         //send_server_list_1(servers, pclnts[i]);
-        send_servers(serverList[i].first, this->coordinator_port,encodeServerList());
+        send_servers(serverList[i].first, this->coordinator_port,"aaaaaaaaa");
     }
 }
 
@@ -334,11 +366,12 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     strcpy (c_ip, coordinator_ip.c_str());
     char * o_ip = new char [ip.length()+1];
     strcpy (o_ip, ip.c_str());
+
     pclnt = clnt_create (c_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
-    if (pclnt == NULL) {
-      clnt_pcreateerror (c_ip);
-      exit (1);
-    }
+     if (pclnt == NULL) {
+        clnt_pcreateerror (c_ip);
+        exit (1);
+      }
     if (isCoordinator()) {
         cout << "is coordinator" << endl;
         joinServerSimple(o_ip, port);
@@ -352,18 +385,28 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         //outputServerList(this);
     } else {
         cout << "is not coordinator, call join_server_1 at " << c_ip << endl;
-        join_server_1(o_ip, port, pclnt);
-        cout << "after join server" << endl;
-        this->articleThread = true;
-        this->c_article_thread = std::thread(ListenArticles, this);
-        this->serverListThread = true;
-        this->c_servers_thread = std::thread(ListenServers, this);
 
-        this->c_servers_thread.detach();
-        this->c_article_thread.detach();
-        server_list servers = buildServerList();
+
+
+                this->serverListThread = true;
+                this->c_servers_thread = std::thread(ListenServers, this);
+
+                //this->articleThread = true;
+                this->c_article_thread = std::thread(join_server_1, o_ip, port, pclnt);
+
+                this->c_article_thread.detach();
+                this->c_servers_thread.detach();
+
+        //join_server_1(o_ip, port, pclnt);
+        cout << "after join server" << endl;
+                //cout << "thread created" <<endl;
+
+        //this->articleThread = true;
+      //  this->c_article_thread = std::thread(ListenArticles, this);
+
+//        server_list servers = buildServerList();
         //testing send server list
-        auto output = send_server_list_1(servers, pclnt);
+//        auto output = send_server_list_1(servers, pclnt);
         //decodeServerList(encodeServerList());
         //outputServerList(this);
     }
@@ -371,12 +414,20 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
 }
 
 PeerClient::~PeerClient() {
+  if(c_servers_thread.joinable()){
+    c_servers_thread.join();
+  }
+
+  if(c_article_thread.joinable()){
+    c_article_thread.join();
+  }
+  //UdpSocket::~UdpSocket();
     if (pclnt){
     clnt_destroy(pclnt);
   }
-  for (int i = 0; i < pclnts.size(); i++) {
-    clnt_destroy(pclnts[i]);
-  }
+  // for (int i = 0; i < pclnts.size(); i++) {
+  //   clnt_destroy(pclnts[i]);
+  // }
 }
 
 int PeerClient::post(char * content) {
@@ -523,6 +574,7 @@ server_list PeerClient::get_server_list(){
 int PeerClient::join_server(IP ip, int port){
   //std::string myString(content, strlen(ip));
   auto output = join_server_1(ip, port, pclnt);
+
   if (output == (int *) NULL) {
     clnt_perror (pclnt, "call failed");
   } else {

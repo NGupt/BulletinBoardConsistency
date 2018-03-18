@@ -14,6 +14,7 @@
 #include <memory.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include "new_server.h"
 
 #ifndef SIG_PF
 #define SIG_PF void(*)(int)
@@ -362,7 +363,8 @@ main (int argc, char **argv)
 		cout << server_ip << " " << server_port << endl;
 
 		//if(coordinator_ip!=server_ip || coordinator_port!=server_port){
-		  PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port);
+		  //PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port);
+			NewServer serv(server_ip, server_port, coordinator_ip, coordinator_port);
     //}
 		 // else
 	   //  PeerClient pclient(server_ip, server_port);
