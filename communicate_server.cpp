@@ -96,18 +96,12 @@ PeerClient::~PeerClient() {
 
 int PeerClient::post(char * content) {
     int output;
-    cout << 1 << endl;
-    return 1;
     if(isCoordinator(server_ip)){
-        cout << 2 << endl;
         std::string myString(content, strlen(content));
         //post to articlePool
         output = articlePool.post(myString);
-        cout << 3 << endl;
-
         //send article to other servers;
     } else {
-        cout << 4 << endl;
         output = *post_1(content, pclnt);
     }
     if (output == 0) {

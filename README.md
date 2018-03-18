@@ -5,7 +5,6 @@ A multithreaded Bulletin Board (BB) system in which clients can post, reply, and
 To compile:
 ```
 make clean
-make rpc
 make all
 ```
 
