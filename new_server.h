@@ -1,3 +1,4 @@
+#include "article.h"
 #include "communicate.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +16,7 @@
 #include <thread>
 #include <vector>
 #include <sys/types.h>
+//#include "article.h"
 
 using namespace std;
 using std::to_string;
@@ -25,7 +27,7 @@ using std::to_string;
 
 class NewServer;
 
-class NewServer {
+class NewServer : public ArticlePool {
 
   string server_ip;
   int server_port;
@@ -44,4 +46,8 @@ public:
     int addToServerList(string ip, int port);
     NewServer(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~NewServer();
+    int udp_send_confirm(const char *ip, int port, const char *buf, const int buf_size);
+    int updateServer(int art_id, string content, char *backup_IP, int backup_port);
+    int insert(int art_id, string content);
+
 };
