@@ -1,3 +1,4 @@
+#include "article.h"
 #include "new_server.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,64 +28,70 @@ int sock;
 thread insert_listen_thread;
 int insert_listen_fd;
 
+
+std::vector <std::string> backupList_IP;
+std::vector <int> backupList_port;
+
+char *c_ip;
+char *o_ip;
 bool NewServer::isCoordinator(string ip) {
     return ip == coordinator_ip ;
 }
 
-int NewServer::send_servers_new(string s_ip, int s_port, const char *servers) {
-  // //std::string temp_ip(s_ip, strlen(s_ip));
-    const char *ip = s_ip.c_str();
-    const char *port = (to_string(s_port)).c_str();
+// int NewServer::send_servers_new(string s_ip, int s_port, const char *servers) {
+//   // //std::string temp_ip(s_ip, strlen(s_ip));
+//     const char *ip = s_ip.c_str();
+//     const char *port = (to_string(s_port)).c_str();
 
-    struct addrinfo sendaddr;
-    struct addrinfo *res = 0;
-    int bytes = 0;
+//     struct addrinfo sendaddr;
+//     struct addrinfo *res = 0;
+//     int bytes = 0;
 
-    memset(&sendaddr, 0, sizeof(sendaddr));
-    sendaddr.ai_family = AF_UNSPEC;
-    sendaddr.ai_socktype = SOCK_DGRAM;
-    sendaddr.ai_protocol = 0;
-    sendaddr.ai_flags = AI_ADDRCONFIG;
+//     memset(&sendaddr, 0, sizeof(sendaddr));
+//     sendaddr.ai_family = AF_UNSPEC;
+//     sendaddr.ai_socktype = SOCK_DGRAM;
+//     sendaddr.ai_protocol = 0;
+//     sendaddr.ai_flags = AI_ADDRCONFIG;
 
-    if (getaddrinfo(ip, port, &sendaddr, &res) != 0) {
-        perror("addrinfo()");
-    }
+//     if (getaddrinfo(ip, port, &sendaddr, &res) != 0) {
+//         perror("addrinfo()");
+//     }
 
-    int sock_s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-     if (sock_s == -1) {
-       freeaddrinfo(res);
-     perror("socket creation()");
-     }
+//     int sock_s = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+//      if (sock_s == -1) {
+//        freeaddrinfo(res);
+//      perror("socket creation()");
+//      }
      
-    if ((bytes=sendto(sock_s, servers, strlen(servers), 0, res->ai_addr, res->ai_addrlen)) == -1) {
-        perror("sendto()");
-        freeaddrinfo(res);
-    }
+//     if ((bytes=sendto(sock_s, servers, strlen(servers), 0, res->ai_addr, res->ai_addrlen)) == -1) {
+//         perror("sendto()");
+//         freeaddrinfo(res);
+//     }
 
 
-    // int recv_len;
-    // char recbuf[BUF_LEN];
-    // recv_len = recvfrom(sock_s, recbuf, BUF_LEN, 0, res->ai_addr,
-    // 			&res->ai_addrlen);
-    //  if (recv_len == -1)
-    //   {
-    //  	freeaddrinfo(res);
-    // 	close(sock_s);
-    //  	return -1;
-    //    }
+//     // int recv_len;
+//     // char recbuf[BUF_LEN];
+//     // recv_len = recvfrom(sock_s, recbuf, BUF_LEN, 0, res->ai_addr,
+//     // 			&res->ai_addrlen);
+//     //  if (recv_len == -1)
+//     //   {
+//     //  	freeaddrinfo(res);
+//     // 	close(sock_s);
+//     //  	return -1;
+//     //    }
 
-    // // //print details of the client/peer and the data received
-    //  printf("Received Data: %s\n" , recv_len);
+//     // // //print details of the client/peer and the data received
+//     //  printf("Received Data: %s\n" , recv_len);
 
-    // freeaddrinfo(res);
-    // close(sock_s);
+//     // freeaddrinfo(res);
+//     // close(sock_s);
     
-    //freeaddrinfo(res);
+//     //freeaddrinfo(res);
 
-    cout << "sending " << servers << "ip " << ip << s_port << endl;
-    close(sock_s);
-    return 0;
-}
+//     cout << "sending " << servers << "ip " << ip << s_port << endl;
+//     close(sock_s);
+//     return 0;
+// }
 
 int NewServer::listen_for(NewServer *s,string s_ip, int port){
     struct sockaddr_in si_other, client_addr;
@@ -140,9 +147,9 @@ NewServer::NewServer(string ip, int server_port, string coordinator_ip, int coor
     this->server_port = server_port;
     this->coordinator_ip = coordinator_ip;
     this->coordinator_port = coordinator_port;
-    char * c_ip = new char [coordinator_ip.length()+1];
+    c_ip = new char [coordinator_ip.length()+1];
     strcpy (c_ip, coordinator_ip.c_str());
-    char * o_ip = new char [ip.length()+1];
+    o_ip = new char [ip.length()+1];
     strcpy (o_ip, ip.c_str());
 
 
@@ -183,10 +190,10 @@ NewServer::NewServer(string ip, int server_port, string coordinator_ip, int coor
       }
     insert_listen_thread = thread(listen_for, this,c_ip, server_port);
     insert_listen_thread.detach();
-    printf("Initialization complete\n");
-    sleep(10);
-    send_servers_new(o_ip, server_port, "aaaaaaaaa");
-    send_servers_new(c_ip, coordinator_port, "aaaaaaaaa");
+     printf("Initialization complete\n");
+    //sleep(10);
+    //send_servers_new(o_ip, server_port, "aaaaaaaaa");
+    //send_servers_new(c_ip, coordinator_port, "aaaaaaaaa");
     
 }
     
@@ -248,11 +255,136 @@ NewServer::NewServer(string ip, int server_port, string coordinator_ip, int coor
 
 NewServer::~NewServer() {
   if(c_servers.joinable()){
-   c_servers.join();
-    close(sock);
+    c_servers.join();
+    //close(sock);
 
   }
 }
+
+int NewServer::insert(int art_id, string content)
+{
+  int result;
+  // if this server is the coordinator
+  if (isCoordinator(o_ip)){
+      // insert message has been received from a client or another server
+      // update self
+    // result = ArticlePool
+      // if (result == 0) {
+      // 	  return 0;
+      // 	}
+
+      // // tell backups to update
+    //   // and wait for acknowledgement
+
+    //   //printf("Updating %s\n",*ip);
+    //   //}
+       for (int i=0; i<backupList_IP.size(); i++)
+     	{
+     	  printf("Updating %s:%d\n",backupList_IP[i].c_str(), backupList_port[i]);
+     	  result = updateServer(art_id, content, (char*)backupList_IP[i].c_str(), backupList_port[i]);
+	   if (result == -1) {
+     	      printf("Update to backup failed. %s:%d\n", (char*)backupList_IP[i].c_str(), backupList_port[i]);
+     	      return -1;
+	   }
+	      else{
+		// connect to coordinator
+		// send to coordinator
+		// wait for confirmation that update has completed
+
+		/* Send register msg */
+		printf("Updating %s:%d\n",c_ip, coordinator_port);
+		result = updateServer(art_id, articleMap[art_id]->content, (char*)c_ip, coordinator_port);
+		if (result == -1)
+		  {
+		    printf("Update to backup failed. %s:%d\n", c_ip, coordinator_port);
+		    return -1;
+		  }
+
+
+	      }
+	      printf("Insert Complete.\n");
+	      // send confirmation to client
+	      return result;
+       }
+  }
+}
+
+int NewServer::updateServer(int art_id, string content, char *backup_IP, int backup_port) {
+
+  int result;
+  char buf[BUF_LEN];
+  snprintf(buf, BUF_LEN, "Insert;%d;%s", art_id, articleMap[art_id]->content);
+  
+  /* Send register msg */
+  
+  result = udp_send_confirm(backup_IP, backup_port, buf, BUF_LEN);
+  if (result < 0)
+    {
+      printf("ERROR: Insert: Sending update\n");
+      return -1;
+    }
+  
+  return result;
+}
+
+
+int NewServer::udp_send_confirm(const char *ip, int port, const char *buf,
+					  const int buf_size)
+{
+  int fd;
+  struct addrinfo hints;
+  struct addrinfo* res;
+  int recv_len;
+	    
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_DGRAM;
+  hints.ai_protocol = 0;
+  hints.ai_flags = AI_ADDRCONFIG;
+
+  if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
+    {
+      return -1;
+    }
+  
+  fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+  if (fd == -1)
+    {
+      freeaddrinfo(res);
+      return -1;
+    }
+  
+  int s = sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen);
+  if (s == -1)
+    {
+      freeaddrinfo(res);
+      close(fd);
+      return -1;
+    }
+
+	    /* Begin listening for confirmation of insert */
+  printf("INFO: Insert: listening for confirmation\n");
+  char recbuf[BUF_LEN];
+  recv_len = recvfrom(fd, recbuf, BUF_LEN, 0, res->ai_addr,
+		      &res->ai_addrlen);
+  if (recv_len == -1)
+    {
+      freeaddrinfo(res);
+      close(fd);
+      return -1;
+    }
+
+	    //print details of the client/peer and the data received
+  printf("Received Data: %s\n" , buf);
+  
+  freeaddrinfo(res);
+  close(fd);
+
+  return s;
+}
+	  
+
+
   // if (pclnt){
   //   clnt_destroy(pclnt);
   // }
