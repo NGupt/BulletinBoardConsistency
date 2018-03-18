@@ -38,6 +38,7 @@ public:
     vector<pair<string, int> > serverList;
     std::thread c_servers; //thread for coordinator to send server list
     bool isCoordinator(string ip);
+    int insert_listen_fd;
     int send_servers_new(string ip, int port, const char *servers);
     static int listen_for(NewServer *s, string ip, int port);
     int addToServerList(string ip, int port);
