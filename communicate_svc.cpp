@@ -48,30 +48,6 @@ _reply_1 (reply_1_argument *argp, struct svc_req *rqstp)
 	return (reply_1_svc(argp->arg1, argp->arg2, rqstp));
 }
 
-static int *
-_send_flag_1 (int  *argp, struct svc_req *rqstp)
-{
-	return (send_flag_1_svc(*argp, rqstp));
-}
-
-static ArticlePoolStruct *
-_get_article_1 (void  *argp, struct svc_req *rqstp)
-{
-	return (get_article_1_svc(rqstp));
-}
-
-static int *
-_send_article_1 (ArticlePoolStruct  *argp, struct svc_req *rqstp)
-{
-	return (send_article_1_svc(*argp, rqstp));
-}
-
-static int *
-_send_server_list_1 (server_list  *argp, struct svc_req *rqstp)
-{
-	return (send_server_list_1_svc(*argp, rqstp));
-}
-
 static server_list *
 _get_server_list_1 (void  *argp, struct svc_req *rqstp)
 {
@@ -91,9 +67,6 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		char *post_1_arg;
 		int choose_1_arg;
 		reply_1_argument reply_1_arg;
-		int send_flag_1_arg;
-		ArticlePoolStruct send_article_1_arg;
-		server_list send_server_list_1_arg;
 	} argument;
 	char *result;
 	xdrproc_t _xdr_argument, _xdr_result;
@@ -126,30 +99,6 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 		_xdr_argument = (xdrproc_t) xdr_reply_1_argument;
 		_xdr_result = (xdrproc_t) xdr_int;
 		local = (char *(*)(char *, struct svc_req *)) _reply_1;
-		break;
-
-	case SEND_FLAG:
-		_xdr_argument = (xdrproc_t) xdr_int;
-		_xdr_result = (xdrproc_t) xdr_int;
-		local = (char *(*)(char *, struct svc_req *)) _send_flag_1;
-		break;
-
-	case GET_ARTICLE:
-		_xdr_argument = (xdrproc_t) xdr_void;
-		_xdr_result = (xdrproc_t) xdr_ArticlePoolStruct;
-		local = (char *(*)(char *, struct svc_req *)) _get_article_1;
-		break;
-
-	case SEND_ARTICLE:
-		_xdr_argument = (xdrproc_t) xdr_ArticlePoolStruct;
-		_xdr_result = (xdrproc_t) xdr_int;
-		local = (char *(*)(char *, struct svc_req *)) _send_article_1;
-		break;
-
-	case SEND_SERVER_LIST:
-		_xdr_argument = (xdrproc_t) xdr_server_list;
-		_xdr_result = (xdrproc_t) xdr_int;
-		local = (char *(*)(char *, struct svc_req *)) _send_server_list_1;
 		break;
 
 	case GET_SERVER_LIST:
@@ -188,65 +137,6 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 
 
 /////////////////////////////peer client///////////////////////////
-int *
-send_flag_1(int arg1,  CLIENT *clnt)
-{
-	static int clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, SEND_FLAG,
-		(xdrproc_t) xdr_int, (caddr_t) &arg1,
-		(xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-ArticlePoolStruct *
-get_article_1(CLIENT *clnt)
-{
-	static ArticlePoolStruct clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	 if (clnt_call (clnt, GET_ARTICLE, (xdrproc_t) xdr_void, (caddr_t) NULL,
-		(xdrproc_t) xdr_ArticlePoolStruct, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-int *
-send_article_1(ArticlePoolStruct arg1,  CLIENT *clnt)
-{
-	static int clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, SEND_ARTICLE,
-		(xdrproc_t) xdr_ArticlePoolStruct, (caddr_t) &arg1,
-		(xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-int *
-send_server_list_1(server_list arg1,  CLIENT *clnt)
-{
-	static int clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, SEND_SERVER_LIST,
-		(xdrproc_t) xdr_server_list, (caddr_t) &arg1,
-		(xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
 int *
 post_1(char *arg1,  CLIENT *clnt)
 {
@@ -323,7 +213,6 @@ get_server_list_1(CLIENT *clnt)
 	return (&clnt_res);
 }
 
-//TODO: implement it
 int *
 join_server_1(IP arg1, int arg2,  CLIENT *clnt)
 {
@@ -346,7 +235,6 @@ int
 main (int argc, char **argv)
 {
 
-	//deal with input
 		if (argc < 5) {
 				std::cout << "Usage: ./serverside server_ip server_port coordinator_ip coordinator_port\n";
 				exit(1);
@@ -354,18 +242,15 @@ main (int argc, char **argv)
 
 		string server_ip((char *) argv[1], strlen((char *)argv[1]));
 		int server_port = stoi(argv[2]);
-		//char *coordinator_ip = (char *) argv[3];
 		string coordinator_ip((char *) argv[3], strlen((char *)argv[3]));
 		int coordinator_port = stoi(argv[4]);
 
 		cout << "Start server at: " << endl;
 		cout << server_ip << " " << server_port << endl;
 
-		//if(coordinator_ip!=server_ip || coordinator_port!=server_port){
-		  PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port);
-    //}
-		 // else
-	   //  PeerClient pclient(server_ip, server_port);
+
+		PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port);
+
 
 	register SVCXPRT *transp;
 

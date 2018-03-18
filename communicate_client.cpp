@@ -32,8 +32,8 @@ public:
     }
 
     ~Client() {
-      if (clnt){
-	clnt_destroy(clnt); }
+      if (clnt)
+	       clnt_destroy(clnt); 
     }
 
     /*Function implementation to receive udp communication*/
@@ -51,11 +51,11 @@ void Client::post(char * content) {
 
 void Client::read() {
     auto output = read_1(clnt);
-    //if (output == NULL) {
-    //    clnt_perror(clnt, "Cannot read");
-    //} else {
+    if (output == NULL) {
+      clnt_perror(clnt, "Cannot read");
+    } else {
     std::cout << "Read from server\n" << *output << std::endl;
-    //}
+    }
 }
 
 void Client::choose(int index) {
@@ -79,9 +79,12 @@ void Client::reply(char * content, int index) {
 
 void Client::get_server_list() {
     auto output = get_server_list_1(clnt);
-    //TODO: fix it
     if (output == (server_list *) NULL) {
       clnt_perror (clnt, "call failed");
+    }
+    std::cout << "server_list is :" << endl;
+    for (int i = 0; i < output->server_list_len; i++) {
+        std::cout << (output->server_list_val + i)->ip << ":" << (output->server_list_val+i)->port << endl;
     }
 }
 
@@ -101,14 +104,14 @@ int main(int argc, char *argv[]) {
     Client conn(client_ip, client_port, serv_ip);
 
     while (1) {
-        std::cout << "Please enter what function you want to perform [1-4]:\n"
-                  << "Function description\n1 Post\n2 Read\n3 Choose\n4 Reply\n";
+        std::cout << "Please enter what function you want to perform [1-5]:\n"
+                  << "Function description\n1 Post\n2 Read\n3 Choose\n4 Reply\n5 Get Server List\n";
         std::cin >> func;
         try {
             func_number = stoi(func);
         }
         catch(std::exception& e) {
-            cout << "ERROR:  Please limit operation values from 1-4 " << endl;
+            cout << "ERROR:  Please limit operation values from 1-5 " << endl;
             continue;
         }
         char *article = new char[MAXSTRING];
@@ -167,6 +170,9 @@ int main(int argc, char *argv[]) {
                 }
                 strcpy(article, articleStr.substr(0, articleStr.length()).c_str());
                 conn.reply(article, articleId);
+                break;
+            case 5:
+                conn.get_server_list();
                 break;
             default:
                 std::cout << "Wrong format specified. Please retry \n";

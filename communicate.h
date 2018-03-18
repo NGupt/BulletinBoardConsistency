@@ -19,7 +19,6 @@ extern "C" {
 #define MAXSTRING 101
 #define MAXPOOLLENGTH 10505
 
-
 typedef char *str;
 
 typedef char *IP;
@@ -28,7 +27,6 @@ struct ArticleContent {
 	int index;
 	str content;
 };
-
 typedef struct ArticleContent ArticleContent;
 
 struct node {
@@ -89,18 +87,6 @@ extern  ArticleContent * choose_1_svc(int , struct svc_req *);
 #define REPLY 4
 extern  int * reply_1(char *, int , CLIENT *);
 extern  int * reply_1_svc(char *, int , struct svc_req *);
-#define SEND_FLAG 5
-extern  int * send_flag_1(int , CLIENT *);
-extern  int * send_flag_1_svc(int , struct svc_req *);
-#define GET_ARTICLE 6
-extern  ArticlePoolStruct * get_article_1(CLIENT *);
-extern  ArticlePoolStruct * get_article_1_svc(struct svc_req *);
-#define SEND_ARTICLE 7
-extern  int * send_article_1(ArticlePoolStruct , CLIENT *);
-extern  int * send_article_1_svc(ArticlePoolStruct , struct svc_req *);
-#define SEND_SERVER_LIST 8
-extern  int * send_server_list_1(server_list , CLIENT *);
-extern  int * send_server_list_1_svc(server_list , struct svc_req *);
 #define GET_SERVER_LIST 9
 extern  server_list * get_server_list_1(CLIENT *);
 extern  server_list * get_server_list_1_svc(struct svc_req *);
@@ -122,18 +108,6 @@ extern  ArticleContent * choose_1_svc();
 #define REPLY 4
 extern  int * reply_1();
 extern  int * reply_1_svc();
-#define SEND_FLAG 5
-extern  int * send_flag_1();
-extern  int * send_flag_1_svc();
-#define GET_ARTICLE 6
-extern  ArticlePoolStruct * get_article_1();
-extern  ArticlePoolStruct * get_article_1_svc();
-#define SEND_ARTICLE 7
-extern  int * send_article_1();
-extern  int * send_article_1_svc();
-#define SEND_SERVER_LIST 8
-extern  int * send_server_list_1();
-extern  int * send_server_list_1_svc();
 #define GET_SERVER_LIST 9
 extern  server_list * get_server_list_1();
 extern  server_list * get_server_list_1_svc();
