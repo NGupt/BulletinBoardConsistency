@@ -22,7 +22,7 @@ public:
 
     void get_server_list();
 
-    Client(char *ip, int port, char *serv_ip) {
+    Client(char *ip, char *serv_ip) {
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
         if (clnt == NULL) {
             clnt_pcreateerror(serv_ip);
@@ -86,18 +86,17 @@ void Client::get_server_list() {
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 4) {
-        std::cout << "Usage: ./clientside client_ip port server_ip\n";
+    if (argc < 3) {
+        std::cout << "Usage: ./clientside client_ip server_ip\n";
         exit(1);
     }
     char *client_ip = (char *) argv[1];
-    int client_port = stoi(argv[2]);
-    char *serv_ip = (char *) argv[3];
+    char *serv_ip = (char *) argv[2];
     char func[1];
     int func_number;
     //char article_string[MAX_ARTICLE_LENGTH];
 
-    Client conn(client_ip, client_port, serv_ip);
+    Client conn(client_ip, serv_ip);
 
     while (1) {
         std::cout << "Please enter what function you want to perform [1-5]:\n"
