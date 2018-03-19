@@ -18,12 +18,13 @@ using std::thread;
 #define SIG_PF void(*)(int)
 #endif
 
+int num_confirmations;
+
 PeerClient *now;
 
 int sock;
 thread insert_listen_thread;
 int insert_listen_fd;
-int num_confirmations = 0;
 
 bool PeerClient::isCoordinator(string ip) {
     return ip == coordinator_ip;
@@ -66,14 +67,10 @@ int PeerClient::joinServer(string ip, int port) {
 
 int PeerClient::updateServer(string content, char *backup_IP, int backup_port) {
 
-    server_list mylist =  buildServerList();
-
     if ((udp_send_confirm(backup_IP, backup_port, content.c_str(), MAXPOOLLENGTH)) < 0) {
         return -1;
     }
 
-    //less than cz no need to wait for confirmation from coordinator
-    while(num_confirmations < (mylist.server_list_len - 1));
 
     return 0;
 }
@@ -91,19 +88,23 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     hints.ai_flags = AI_ADDRCONFIG;
 
     //cout << "buf: " << buf <<endl;
-    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0) {
+    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
+    {
         perror("cant get addressinfo");
         return -1;
     }
 
-    if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol))== -1) {
+    fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+    if (fd == -1)
+    {
         perror("cant create socket");
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
 
-    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1) {
+    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1)
+    {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
@@ -111,18 +112,18 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     }
 
     /* Begin listening for confirmation of insert */
-    cout << "INFO: Insert: listening for confirmation for all peer servers" << endl;
+    printf("INFO: Insert: listening for confirmation\n");
     char recbuf[MAXPOOLLENGTH];
-
     if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
+
     //print details of the client/peer and the data received
     printf("Received Data: %s\n" , recbuf);
-    num_confirmations++;
 
+    num_confirmations++;
 
     freeaddrinfo(res);
     close(fd);
@@ -138,11 +139,16 @@ int PeerClient::insert(PeerClient *p, string content)
             continue;
         printf("Updating %s:%d\n",p->serverList[i].first.c_str(), p->serverList[i].second);
         result = p->updateServer(content, (char*)(p->serverList[i].first.c_str()), p->serverList[i].second);
+        if (result == -1) {
+            printf("Update to backup failed");
+            return -1;
+        }
 
         //printf("Insert Complete.\n");
         // send confirmation to client
-        return result;
     }
+    while(num_confirmations < (p->serverList.size() - 1));
+    return result;
 }
 
 void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
@@ -158,11 +164,6 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
         fprintf(stderr, "inet_aton failed\n");
     }
 
-    bzero((char *) &self_addr, sizeof(self_addr));
-    self_addr.sin_family = AF_INET;
-    self_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    self_addr.sin_port = htons((unsigned short) port);
-
     char article_update[MAXPOOLLENGTH];
     // Clear the buffer by filling null, it might have previously received data
     memset(article_update, '\0', MAXPOOLLENGTH);
@@ -175,7 +176,7 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             perror("recvfrom()");
             exit(1);
         }
-       // cout << "listened "  << " " << article_update << endl;
+        // cout << "listened "  << " " << article_update << endl;
 
         std::string delimiter = ";";
         string article(article_update, strlen(article_update));
@@ -193,13 +194,13 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
         //s->articlePool.count += s->articlePool.getCount() + 1;
         s->articlePool.storeArticle(content,index); //with index = 0 , it is same as post
 
-        //cout << "resending recvd thing" << article_update << endl;
+        cout << "resending recvd thing" << article_update << endl;
 
         if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
         {
-            perror("Error: acknowledging the received string" );
             close(s->insert_listen_fd);
             s->insert_listen_fd = -1;
+            cout << "Error: acknowledging the received string" << endl;
             throw;
         }
     }
@@ -223,6 +224,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     }
     if (isCoordinator(o_ip)) {
         cout << "is coordinator" << endl;
+        num_confirmations = 0;
     } else {
         cout << "is not coordinator, joining server to " << c_ip << endl;
     }
@@ -245,7 +247,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
 
     if (isCoordinator(o_ip)) {
         // This is the Coordinator
-        si_me.sin_port = htons(coordinator_port); // listens to peer_servers
+        si_me.sin_port = htons(server_port); // listens to peer_servers
         cout << "Coordinator started" << endl;
     } else {
         // This is not the Coordinator
@@ -288,7 +290,7 @@ int PeerClient::post(char *content) {
         for (rit=articlePool.articleMap.begin(); rit!=articlePool.articleMap.end(); ++rit)
             temp = rit->second;
         //cout << (temp->index) << temp->content << "before sending"<< endl;
-       // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
+        // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
 
         string send_content;
         stringstream ss;
@@ -329,20 +331,20 @@ string PeerClient::read() {
 
 ArticleContent PeerClient::choose(int index) {
     //if (isCoordinator(server_ip)) {
-        static ArticleContent result;
-        result.content = new char[MAXSTRING];
-        Article *resultArticle = articlePool.choose(index);
-        if (resultArticle == NULL) {
-            strcpy(result.content, "");
-            result.index = 0;
-            cout << "The article with id " << index << " doesn't exist in the server." << endl;
-        } else {
-            strcpy(result.content, resultArticle->content.c_str());
-            result.index = resultArticle->index;
-            cout << "The client choose the article: " << endl;
-            cout << result.index << " " << result.content << endl;
-        }
-        return result;
+    static ArticleContent result;
+    result.content = new char[MAXSTRING];
+    Article *resultArticle = articlePool.choose(index);
+    if (resultArticle == NULL) {
+        strcpy(result.content, "");
+        result.index = 0;
+        cout << "The article with id " << index << " doesn't exist in the server." << endl;
+    } else {
+        strcpy(result.content, resultArticle->content.c_str());
+        result.index = resultArticle->index;
+        cout << "The client choose the article: " << endl;
+        cout << result.index << " " << result.content << endl;
+    }
+    return result;
 //    } else {
 //        auto output = choose_1(index, pclnt);
 //        if (output->index == 0) {
@@ -364,7 +366,7 @@ int PeerClient::reply(char *content, int index) {
         for (rit=articlePool.articleMap.begin(); rit!=articlePool.articleMap.end(); ++rit)
             temp = rit->second;
         //cout << (temp->index) << temp->content << "before sending"<< endl;
-       // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
+        // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
 
         string send_content;
         stringstream ss;

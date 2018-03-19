@@ -32,8 +32,8 @@ public:
     }
 
     ~Client() {
-      if (clnt)
-	       clnt_destroy(clnt); 
+        if (clnt)
+            clnt_destroy(clnt);
     }
 };
 
@@ -76,7 +76,7 @@ void Client::reply(char * content, int index) {
 void Client::get_server_list() {
     auto output = get_server_list_1(clnt);
     if (output == (server_list *) NULL) {
-      clnt_perror (clnt, "call failed");
+        clnt_perror (clnt, "call failed");
     }
     std::cout << "server_list is :" << endl;
     for (int i = 0; i < output->server_list_len; i++) {

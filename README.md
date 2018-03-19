@@ -11,7 +11,7 @@ make all
 How to use:
 
 Launch the RPC server with ./serverside   “local ip” “local port” "coordinator ip" "coordinator port"
-If coordinator_ip and local_ip are same, it is a coordinator 
+If coordinator_ip and local_ip are same, it is a coordinator
 
 Launch a client application in another process. Its usage is as follows;
 ./clientside “local ip” “server ip”
@@ -19,7 +19,9 @@ Launch a client application in another process. Its usage is as follows;
 Example of launching:
 Coordinator:   `./serverside 128.101.37.27 1234 128.101.37.27 3456`
 
-Peer Server:   `./serverside 128.101.37.11 3456 128.101.37.27 3456`
+Peer Server1:   `./serverside 128.101.37.11 2345 128.101.37.27 3456`
+
+Peer Server2:   `./serverside 128.101.37.07 4444 128.101.37.27 3456`
 
 Client     :   `./clientside 128.101.37.25 128.101.37.11`
 

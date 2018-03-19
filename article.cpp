@@ -7,8 +7,8 @@
 using namespace std;
 
 
-
-string intToStr(int x) { stringstream ss;
+string intToStr(int x) {
+    stringstream ss;
     ss << x;
     return ss.str();
 }
@@ -18,16 +18,16 @@ string toString(char *s) {
     return s;
 }
 
-Article::Article(int id, string article): content(article), index(id) {}
+Article::Article(int id, string article) : content(article), index(id) {}
 
-ArticlePool::ArticlePool(): count(0) {
+ArticlePool::ArticlePool() : count(0) {
 }
 
 //initialize an articlePool with pool struct 
 ArticlePool::ArticlePool(ArticlePoolStruct pool) {
     count = 0;
     for (int i = 0; i < pool.count; i++) {
-        ArticleStruct * art = pool.artciles.array_article_val + i;
+        ArticleStruct *art = pool.artciles.array_article_val + i;
         if (art->depth == 0) {
             post(toString(art->content));
         } else {
@@ -42,7 +42,7 @@ ArticlePool::~ArticlePool() {
     releaseAll();
 }
 
-void ArticlePool::releaseArticle(Article * article) {
+void ArticlePool::releaseArticle(Article *article) {
     for (int i = 0; i < article->nextArticles.size(); i++) {
         releaseArticle(article->nextArticles[i]);
         delete article->nextArticles[i];
@@ -65,16 +65,15 @@ void ArticlePool::releaseAll() {
 }
 
 int ArticlePool::storeArticle(string article, int father) {
-    if (father > 0 && father <= count) { 
+    if (father > 0 && father <= count) {
         count++;
         Article *head = articleMap[father];
-        Article * now = new Article(count, article);
+        Article *now = new Article(count, article);
         head->nextArticles.push_back(now);
         articleMap[count] = now;
         isHeadArticle.push_back(false);
         return count;
-    }
-    else if (father == 0) {
+    } else if (father == 0) {
         count++;
         Article *now = new Article(count, article);
         articleMap[count] = now;
@@ -86,7 +85,7 @@ int ArticlePool::storeArticle(string article, int father) {
     return 0;
 }
 
-Article* ArticlePool::choose(int index) {
+Article *ArticlePool::choose(int index) {
     if (articleMap.find(index) != articleMap.end()) {
         return articleMap[index];
     } else {
@@ -94,21 +93,21 @@ Article* ArticlePool::choose(int index) {
         return NULL;
     }
 } //reply to article with index
-    //return the index of the new article
-    //the index == 0 if doesn't post successfully
-int ArticlePool::reply(string article, int index) { 
+//return the index of the new article
+//the index == 0 if doesn't post successfully
+int ArticlePool::reply(string article, int index) {
     return storeArticle(article, index);
 }
 
-    //post an article
-    //return the index of the new article
-    //the index == 0 if doesn't post successfully
+//post an article
+//return the index of the new article
+//the index == 0 if doesn't post successfully
 int ArticlePool::post(string article) {
     //cout << " into articlePool's post "<< endl;
     return storeArticle(article, 0);
 }
 
-void ArticlePool::readArticleContent(string & articles, Article *now, int level) {
+void ArticlePool::readArticleContent(string &articles, Article *now, int level) {
     string currentLine = "";
     for (int i = 0; i < 4 * level; i++) {
         currentLine.push_back(' ');
@@ -153,12 +152,12 @@ void ArticlePool::readArticleContent(string & articles, Article *now, int level)
 //}
 
 
-    //read the content of article
+//read the content of article
 string ArticlePool::read() {
     string articles = "";
     for (int i = 1; i <= count; i++) {
         if (isHeadArticle[i - 1]) {
-            Article * now = articleMap[i];
+            Article *now = articleMap[i];
             readArticleContent(articles, now, 0);
         }
     }
@@ -169,7 +168,7 @@ int ArticlePool::getCount() {
     return count;
 }
 
-void ArticlePool::getArticleContent(ArticleStruct* &article, Article *now, int level) {
+void ArticlePool::getArticleContent(ArticleStruct *&article, Article *now, int level) {
     article->index = now->index;
     article->content = new char[now->content.length() + 1];
     strcpy(article->content, now->content.c_str());
@@ -183,13 +182,13 @@ void ArticlePool::getArticleContent(ArticleStruct* &article, Article *now, int l
 ArticlePoolStruct ArticlePool::getArticle() {
     ArticlePoolStruct res;
     res.count = count;
-    res.update_count = count; 
+    res.update_count = count;
     if (count == 0) return res;
     res.artciles.array_article_val = new ArticleStruct[count];
-    ArticleStruct *articleP = res.artciles.array_article_val; 
+    ArticleStruct *articleP = res.artciles.array_article_val;
     for (int i = 1; i <= count; i++) {
         if (isHeadArticle[i - 1]) {
-            Article * now = articleMap[i];
+            Article *now = articleMap[i];
             int pos = 0;
             getArticleContent(articleP, now, 0);
         }
@@ -213,7 +212,7 @@ void ArticlePool::PrintArticlePoolStruct(ArticlePoolStruct pool) {
 }
 
 void encodeInt(char *&buffer, int x) {
-    *buffer = x & 0xff; 
+    *buffer = x & 0xff;
     *(++buffer) = (x >> 8) & 0xff;
     *(++buffer) = (x >> 16) & 0xff;
     *(++buffer) = (x >> 24) & 0xff;
@@ -221,11 +220,11 @@ void encodeInt(char *&buffer, int x) {
 }
 
 void encodeString(char *&buffer, string s, int len) {
-   strcpy(buffer, s.c_str());
-   buffer += len;
+    strcpy(buffer, s.c_str());
+    buffer += len;
 }
 
-void ArticlePool::encodeArticle(char *& buffer, Article * article, int father) {
+void ArticlePool::encodeArticle(char *&buffer, Article *article, int father) {
     encodeInt(buffer, father);
     encodeString(buffer, article->content, MAXSTRING);
     for (int i = 0; i < article->nextArticles.size(); i++) {
@@ -235,9 +234,9 @@ void ArticlePool::encodeArticle(char *& buffer, Article * article, int father) {
 
 int decodeInt(char *&buffer) {
     int x = *buffer & 0xff;
-    x = x | ((*(++buffer ) &0xff) << 8); 
-    x = x | ((*(++buffer) &0xff)<< 16);
-    x = x | ((*(++buffer) &0xff)<< 24);
+    x = x | ((*(++buffer) & 0xff) << 8);
+    x = x | ((*(++buffer) & 0xff) << 16);
+    x = x | ((*(++buffer) & 0xff) << 24);
     buffer++;
     return x;
 }
@@ -248,22 +247,21 @@ string decodeString(char *&buffer, int len) {
     return s;
 }
 
-char * ArticlePool::encodeArticlePool() {
+char *ArticlePool::encodeArticlePool() {
     //store count(4)
     //content(101) father(4)
-    char * res = new char[4 + (MAXSTRING + 4) * count];
-    char * r = res;
+    char *res = new char[4 + (MAXSTRING + 4) * count];
+    char *r = res;
     encodeInt(r, count);
     for (int i = 1; i <= count; i++) {
         if (isHeadArticle[i - 1]) {
             encodeArticle(res, articleMap[i], 0);
         }
-    } return r;
-
+    }
+    return r;
 
 
 }
-
 
 
 void ArticlePool::decodeArticlePool(char *article) {
@@ -271,7 +269,7 @@ void ArticlePool::decodeArticlePool(char *article) {
     int size = decodeInt(article);
     for (int i = 0; i < size; i++) {
         int father = decodeInt(article);
-        string s = decodeString(article, MAXSTRING); 
+        string s = decodeString(article, MAXSTRING);
         storeArticle(s, father);
     }
 }
