@@ -18,7 +18,9 @@ Launch a client application in another process. Its usage is as follows;
 
 Example of launching:
 Coordinator:   `./serverside 128.101.37.27 1234 128.101.37.27 3456`
+
 Peer Server:   `./serverside 128.101.37.11 3456 128.101.37.27 3456`
+
 Client     :   `./clientside 128.101.37.25 128.101.37.11`
 
 Options on client side (post | read | choose | reply | get_server_list) where each has its function as follows -

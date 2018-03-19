@@ -63,19 +63,13 @@ int PeerClient::joinServer(string ip, int port) {
     return 0;
 }
 
-int PeerClient::updateServer(int art_id, string content, char *backup_IP, int backup_port) {
+int PeerClient::updateServer(string content, char *backup_IP, int backup_port) {
 
-    int result = -1;
-//    char buf[MAXPOOLLENGTH];
-//    snprintf(buf, MAXPOOLLENGTH, "Insert;%d;%s", art_id, content.c_str());
-
-    result = udp_send_confirm(backup_IP, backup_port, content.c_str(), MAXPOOLLENGTH);
-    if (result < 0) {
-        printf("ERROR: Insert: Sending update\n");
+    if ((udp_send_confirm(backup_IP, backup_port, content.c_str(), MAXPOOLLENGTH)) < 0) {
         return -1;
     }
 
-    return result;
+    return 0;
 }
 
 
@@ -102,11 +96,11 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     {
         perror("cant create socket");
         freeaddrinfo(res);
+        close(fd);
         return -1;
     }
 
-    int s = sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen);
-    if (s == -1)
+    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1)
     {
         perror("cant send ");
         freeaddrinfo(res);
@@ -114,17 +108,17 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
         return -1;
     }
 
-//    /* Begin listening for confirmation of insert */
-//    printf("INFO: Insert: listening for confirmation\n");
-//    char recbuf[MAXPOOLLENGTH];
-//    if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
-//        freeaddrinfo(res);
-//        close(fd);
-//        return -1;
-//    }
-//
-//    //print details of the client/peer and the data received
-//    printf("Received Data: %s\n" , buf);
+    /* Begin listening for confirmation of insert */
+    printf("INFO: Insert: listening for confirmation\n");
+    char recbuf[MAXPOOLLENGTH];
+    if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
+        freeaddrinfo(res);
+        close(fd);
+        return -1;
+    }
+
+    //print details of the client/peer and the data received
+    //printf("Received Data: %s\n" , recbuf);
 
     freeaddrinfo(res);
     close(fd);
@@ -132,14 +126,14 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     return 0;
 }
 
-int PeerClient::insert(PeerClient *p, int art_id, string content)
+int PeerClient::insert(PeerClient *p, string content)
 {
     int result;
     for (int i=0; i<(p->serverList.size()); i++) {
         if(p->isCoordinator(p->serverList[i].first.c_str()))
             continue;
         printf("Updating %s:%d\n",p->serverList[i].first.c_str(), p->serverList[i].second);
-        result = p->updateServer(art_id, content, (char*)(p->serverList[i].first.c_str()), p->serverList[i].second);
+        result = p->updateServer(content, (char*)(p->serverList[i].first.c_str()), p->serverList[i].second);
         if (result == -1) {
             printf("Update to backup failed");
             return -1;
@@ -199,13 +193,15 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
         //s->articlePool.count += s->articlePool.getCount() + 1;
         s->articlePool.storeArticle(content,index); //with index = 0 , it is same as post
 
-//        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
-//        {
-//            close(s->insert_listen_fd);
-//            s->insert_listen_fd = -1;
-//            cout << "Error: acknowledging the received string" << endl;
-//            throw;
-//        }
+        //cout << "resending recvd thing" << article_update << endl;
+
+        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
+        {
+            close(s->insert_listen_fd);
+            s->insert_listen_fd = -1;
+            cout << "Error: acknowledging the received string" << endl;
+            throw;
+        }
     }
 }
 
@@ -277,7 +273,7 @@ PeerClient::~PeerClient() {
     if(insert_listen_thread.joinable()){
         insert_listen_thread.join();
     }
-    //close(sock);
+    close(sock);
 }
 
 int PeerClient::post(char *content) {
@@ -303,7 +299,7 @@ int PeerClient::post(char *content) {
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
 
-        insert(this, temp->index, send_content);
+        insert(this, send_content);
     } else {
         output = *post_1(content, pclnt);
         if (output == 0) {
@@ -382,7 +378,7 @@ int PeerClient::reply(char *content, int index) {
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
 
-        insert(this, (temp->index), send_content);
+        insert(this, send_content);
         return result;
     } else {
         auto output = reply_1(content, index, pclnt);

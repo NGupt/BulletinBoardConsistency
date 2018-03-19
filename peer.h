@@ -35,7 +35,7 @@ public:
     static void listen_from(PeerClient *s, string remote_ip, int port);
 //    int udp_send_confirm(const char *ip, int port, const char *buf, const int buf_size);
 //    int updateServer(int art_id, string content, char *backup_IP, int backup_port);
-    static int insert(PeerClient *p, int art_id, string content);
+    static int insert(PeerClient *p, string content);
     ArticlePoolStruct get_article();
     ArticlePoolStruct getLocalArticle();
     server_list buildServerList();
@@ -47,7 +47,7 @@ public:
     int join_server(IP ip, int port);
     int joinServer(string ip, int port);
     int udp_send_confirm(const char *ip, int port, const char *buf, const int buf_size);
-    int updateServer(int art_id, string content, char *backup_IP, int backup_port);
+    int updateServer(string content, char *backup_IP, int backup_port);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~PeerClient();
 };
