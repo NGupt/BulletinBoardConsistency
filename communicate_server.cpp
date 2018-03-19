@@ -23,6 +23,7 @@ PeerClient *now;
 int sock;
 thread insert_listen_thread;
 int insert_listen_fd;
+int num_confirmations = 0;
 
 bool PeerClient::isCoordinator(string ip) {
     return ip == coordinator_ip;
@@ -65,9 +66,14 @@ int PeerClient::joinServer(string ip, int port) {
 
 int PeerClient::updateServer(string content, char *backup_IP, int backup_port) {
 
+    server_list mylist =  buildServerList();
+
     if ((udp_send_confirm(backup_IP, backup_port, content.c_str(), MAXPOOLLENGTH)) < 0) {
         return -1;
     }
+
+    //less than cz no need to wait for confirmation from coordinator
+    while(num_confirmations < (mylist.server_list_len - 1));
 
     return 0;
 }
@@ -85,23 +91,19 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     hints.ai_flags = AI_ADDRCONFIG;
 
     //cout << "buf: " << buf <<endl;
-    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
-    {
+    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0) {
         perror("cant get addressinfo");
         return -1;
     }
 
-    fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (fd == -1)
-    {
+    if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol))== -1) {
         perror("cant create socket");
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
 
-    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1)
-    {
+    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1) {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
@@ -109,16 +111,18 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     }
 
     /* Begin listening for confirmation of insert */
-    printf("INFO: Insert: listening for confirmation\n");
+    cout << "INFO: Insert: listening for confirmation for all peer servers" << endl;
     char recbuf[MAXPOOLLENGTH];
+
     if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
-
     //print details of the client/peer and the data received
-    //printf("Received Data: %s\n" , recbuf);
+    printf("Received Data: %s\n" , recbuf);
+    num_confirmations++;
+
 
     freeaddrinfo(res);
     close(fd);
@@ -128,16 +132,12 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
 
 int PeerClient::insert(PeerClient *p, string content)
 {
-    int result;
+    int result = 0;
     for (int i=0; i<(p->serverList.size()); i++) {
         if(p->isCoordinator(p->serverList[i].first.c_str()))
             continue;
         printf("Updating %s:%d\n",p->serverList[i].first.c_str(), p->serverList[i].second);
         result = p->updateServer(content, (char*)(p->serverList[i].first.c_str()), p->serverList[i].second);
-        if (result == -1) {
-            printf("Update to backup failed");
-            return -1;
-        }
 
         //printf("Insert Complete.\n");
         // send confirmation to client
@@ -197,9 +197,9 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
 
         if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
         {
+            perror("Error: acknowledging the received string" );
             close(s->insert_listen_fd);
             s->insert_listen_fd = -1;
-            cout << "Error: acknowledging the received string" << endl;
             throw;
         }
     }
