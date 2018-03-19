@@ -1,7 +1,7 @@
 const MAXIP = 16;
 const MAXSERVERS = 10;
 const MAXARTICLES = 100;
-const MAXSTRING = 101;
+const MAXSTRING = 105;
 typedef string str<MAXSTRING>;
 typedef string IP<MAXIP>;
 

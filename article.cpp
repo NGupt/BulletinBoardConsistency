@@ -197,7 +197,7 @@ ArticlePoolStruct ArticlePool::getArticle() {
     return res;
 }
 
-void PrintArticlePoolStruct(ArticlePoolStruct pool) {
+void ArticlePool::PrintArticlePoolStruct(ArticlePoolStruct pool) {
     cout << "Count: " << pool.count << "\nupdate_count: " << pool.update_count << endl;
     if (pool.count == 0) return;
     ArticleStruct *article = pool.artciles.array_article_val;
@@ -207,11 +207,10 @@ void PrintArticlePoolStruct(ArticlePoolStruct pool) {
                 cout << " ";
             }
         }
-        cout << article->index << " " << article->content << endl;
+        cout << "printing " << article->index << " " << article->content << endl;
         article++;
     }
 }
-
 
 void encodeInt(char *&buffer, int x) {
     *buffer = x & 0xff; 
@@ -275,56 +274,47 @@ void ArticlePool::decodeArticlePool(char *article) {
 }
 
 
-void PrintArticlePoolMessage(ArticlePool *p, char *pool) {
-    int size = decodeInt(pool);
-    cout << "Count: " << size << endl;
-    for (int i = 0; i < size; i++) {
-        int father = decodeInt(pool);
-        string s = decodeString(pool, MAXSTRING); 
-        cout << "Father Index: " << father << "\n Content: " << s << endl;
-    }
-}
 
 
-
-//int main() {
-//    ArticlePool articlePool;
-//    //------------test article pool-----/
-//    ArticlePool newPool2(articlePool.getArticle());
-//    articlePool.post("Article 1");
-//    cout << articlePool.read() << endl;
-//    int id1 = articlePool.post("Article 2");
-//    cout << articlePool.read() << endl;
-//    articlePool.reply("A reply for Article 2", id1);
-//    cout << articlePool.read() << endl;
-//    int id2 = articlePool.reply("A reply for Article 2", id1);
-//    cout << articlePool.read() << endl;
-//    articlePool.reply("A reply for Article 4", id2);
-//    cout << articlePool.read() << endl;
+int main() {
+    ArticlePool articlePool;
+    //------------test article pool-----/
+    ArticlePool newPool2(articlePool.getArticle());
+    articlePool.post("Article 1");
+    cout << "AAAA" << articlePool.read() << endl;
+    int id1 = articlePool.post("Article 2");
+    cout << articlePool.read() << endl;
+    articlePool.reply("A reply for Article 2", id1);
+    cout << articlePool.read() << endl;
+    int id2 = articlePool.reply("A reply for Article 2", id1);
+    cout << articlePool.read() << endl;
+    articlePool.reply("A reply for Article 4", id2);
+    cout << articlePool.read() << endl;
 //    cout << "--------tests for single choose-----" << endl;
 //    Article * now = articlePool.choose(id1);
-//    if (now != NULL) 
+//    if (now != NULL)
 //    cout << now->index << " " << now->content << endl;
 //    now = articlePool.choose(id2);
-//    if (now != NULL) 
+//    if (now != NULL)
 //    cout << now->index << " " << now->content << endl;
 //    now = articlePool.choose(6);
 //    ArticlePool newPool(articlePool.getArticle());
 //    newPool.post("newnewnew");
 //    cout << articlePool.read() << endl;
 //    cout << newPool.read() << endl;
-//
-//    cout << "testing article pool struct" << endl;
-//    cout << articlePool.read() << endl;
-//    ArticlePoolStruct pool = articlePool.getArticle();
-//    PrintArticlePoolStruct(pool);
-//    ArticlePool newPool3(pool);
-//    newPool3.post("a new article");
-//    cout << newPool3.read() << endl;
-//    cout << "testing udp article message" << endl;
-//    char * poolMessage = newPool3.encodeArticlePool();
-//    PrintArticlePoolMessage(&newPool3, poolMessage);
-//    articlePool.decodeArticlePool(poolMessage);
-//    cout << articlePool.read();
-//    return 0;
-//}
+
+    cout << "testing article pool struct" << endl;
+    cout << articlePool.read() << endl;
+    ArticlePoolStruct pool = articlePool.getArticle();
+    articlePool.PrintArticlePoolStruct(pool);
+    ArticlePool newPool3(pool);
+    newPool3.post("a new article");
+    cout << newPool3.read() << endl;
+    cout << "testing udp article message" << endl;
+    char * poolMessage = newPool3.encodeArticlePool();
+    cout << poolMessage << endl;
+    //newPool3.PrintArticlePoolStruct(poolMessage);
+    newPool3.decodeArticlePool(poolMessage);
+    //cout << newPool3.read();
+    return 0;
+}

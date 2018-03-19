@@ -1,0 +1,4 @@
+/home/gupta329/Downloads/clion-2017.3.4/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/gupta329/Dist_proj2/BulletinBoardConsistency
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/gupta329/Dist_proj2/BulletinBoardConsistency/cmake-build-debug

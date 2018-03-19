@@ -26,14 +26,13 @@ public:
 
 class ArticlePool {
 private:
-    map<int, Article*> articleMap;
     vector<bool> isHeadArticle;
     int count;
 
-    int storeArticle(string article, int father);
-    void readArticleContent(string & articles, Article *now, int level);
-    void getArticleContent(ArticleStruct* &articleP, Article *now, int level);
+
+
 public:
+    map<int, Article*> articleMap;
     ArticlePool();
     ArticlePool(ArticlePoolStruct pool);
     ~ArticlePool();
@@ -56,14 +55,18 @@ public:
     //read the content of article
     string read();
     ArticlePoolStruct getArticle();
-
+    int storeArticle(string article, int father);
+    void readArticleContent(string & articles, Article *now, int level);
+    void getArticleContent(ArticleStruct* &articleP, Article *now, int level);
     //ArticlePool deepCopy();
     int getCount();
 
     void releaseAll();
     void releaseArticle(Article *article);
-    
+
     void encodeArticle(char *&buffer, Article *article, int father);
     char * encodeArticlePool();
     void decodeArticlePool(char * pool);
+    void PrintArticlePoolStruct(ArticlePoolStruct pool);
+
 };
