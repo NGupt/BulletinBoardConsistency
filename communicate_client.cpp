@@ -77,10 +77,11 @@ void Client::get_server_list() {
     auto output = get_server_list_1(clnt);
     if (output == (server_list *) NULL) {
         clnt_perror (clnt, "call failed");
-    }
-    std::cout << "server_list is :" << endl;
-    for (int i = 0; i < output->server_list_len; i++) {
-        std::cout << (output->server_list_val + i)->ip << ":" << (output->server_list_val+i)->port << endl;
+    } else {
+        std::cout << "server_list is :" << endl;
+        for (int i = 0; i < output->server_list_len; i++) {
+            std::cout << (output->server_list_val + i)->ip << ":" << (output->server_list_val + i)->port << endl;
+        }
     }
 }
 

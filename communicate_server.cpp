@@ -234,8 +234,10 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         cout << "Error: binding socket" << endl;
         throw;
     }
-    insert_listen_thread = thread(listen_from, this, c_ip, server_port);
-    insert_listen_thread.detach();
+    if(!isCoordinator(o_ip)) {
+        insert_listen_thread = thread(listen_from, this, c_ip, server_port);
+        insert_listen_thread.detach();
+    }
     cout << "Initialization complete" << endl;
 
     std::cout << ".....Completed Server creation.....\n";
@@ -453,7 +455,7 @@ send_flag_1_svc(int arg1,  struct svc_req *rqstp)
 server_list *
 get_server_list_1_svc(struct svc_req *rqstp) {
     static server_list result;
-    result = now->buildServerList();
+    result = now->get_server_list();
     return &result;
 }
 
