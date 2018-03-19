@@ -253,12 +253,15 @@ char * ArticlePool::encodeArticlePool() {
     //content(101) father(4)
     char * res = new char[4 + (MAXSTRING + 4) * count];
     char * r = res;
-    encodeInt(res, count); 
+    encodeInt(r, count);
     for (int i = 1; i <= count; i++) {
         if (isHeadArticle[i - 1]) {
             encodeArticle(res, articleMap[i], 0);
         }
     } return r;
+
+
+
 }
 
 
@@ -276,45 +279,45 @@ void ArticlePool::decodeArticlePool(char *article) {
 
 
 
-int main() {
-    ArticlePool articlePool;
-    //------------test article pool-----/
-    ArticlePool newPool2(articlePool.getArticle());
-    articlePool.post("Article 1");
-    cout << "AAAA" << articlePool.read() << endl;
-    int id1 = articlePool.post("Article 2");
-    cout << articlePool.read() << endl;
-    articlePool.reply("A reply for Article 2", id1);
-    cout << articlePool.read() << endl;
-    int id2 = articlePool.reply("A reply for Article 2", id1);
-    cout << articlePool.read() << endl;
-    articlePool.reply("A reply for Article 4", id2);
-    cout << articlePool.read() << endl;
-//    cout << "--------tests for single choose-----" << endl;
-//    Article * now = articlePool.choose(id1);
-//    if (now != NULL)
-//    cout << now->index << " " << now->content << endl;
-//    now = articlePool.choose(id2);
-//    if (now != NULL)
-//    cout << now->index << " " << now->content << endl;
-//    now = articlePool.choose(6);
-//    ArticlePool newPool(articlePool.getArticle());
-//    newPool.post("newnewnew");
-//    cout << articlePool.read() << endl;
-//    cout << newPool.read() << endl;
-
-    cout << "testing article pool struct" << endl;
-    cout << articlePool.read() << endl;
-    ArticlePoolStruct pool = articlePool.getArticle();
-    articlePool.PrintArticlePoolStruct(pool);
-    ArticlePool newPool3(pool);
-    newPool3.post("a new article");
-    cout << newPool3.read() << endl;
-    cout << "testing udp article message" << endl;
-    char * poolMessage = newPool3.encodeArticlePool();
-    cout << poolMessage << endl;
-    //newPool3.PrintArticlePoolStruct(poolMessage);
-    newPool3.decodeArticlePool(poolMessage);
-    //cout << newPool3.read();
-    return 0;
-}
+//int main() {
+////    ArticlePool articlePool;
+////    //------------test article pool-----/
+////    ArticlePool newPool2(articlePool.getArticle());
+////    articlePool.post("Article 1");
+////    cout << "AAAA" << articlePool.read() << endl;
+////    int id1 = articlePool.post("Article 2");
+////    cout << articlePool.read() << endl;
+////    articlePool.reply("A reply for Article 2", id1);
+////    cout << articlePool.read() << endl;
+////    int id2 = articlePool.reply("A reply for Article 2", id1);
+////    cout << articlePool.read() << endl;
+////    articlePool.reply("A reply for Article 4", id2);
+////    cout << articlePool.read() << endl;
+////    cout << "--------tests for single choose-----" << endl;
+////    Article * now = articlePool.choose(id1);
+////    if (now != NULL)
+////    cout << now->index << " " << now->content << endl;
+////    now = articlePool.choose(id2);
+////    if (now != NULL)
+////    cout << now->index << " " << now->content << endl;
+////    now = articlePool.choose(6);
+////    ArticlePool newPool(articlePool.getArticle());
+////    newPool.post("newnewnew");
+////    cout << articlePool.read() << endl;
+////    cout << newPool.read() << endl;
+////
+////    cout << "testing article pool struct" << endl;
+////    cout << articlePool.read() << endl;
+////    ArticlePoolStruct pool = articlePool.getArticle();
+////    articlePool.PrintArticlePoolStruct(pool);
+//    ArticlePool newPool3;
+//    newPool3.post("a new article");
+//    cout << newPool3.read() << endl;
+//    cout << "testing udp article message" << endl;
+//    char * poolMessage = newPool3.encodeArticlePool();
+//    cout << poolMessage << endl;
+//    //newPool3.PrintArticlePoolStruct(poolMessage);
+//    newPool3.decodeArticlePool(poolMessage);
+//    //cout << newPool3.read();
+//    return 0;
+//}

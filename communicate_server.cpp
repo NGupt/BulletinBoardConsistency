@@ -88,12 +88,14 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     cout << "buf: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
     {
+        perror("cant get addressinfo");
         return -1;
     }
 
     fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (fd == -1)
     {
+        perror("cant create socket");
         freeaddrinfo(res);
         return -1;
     }
@@ -101,6 +103,7 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     int s = sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen);
     if (s == -1)
     {
+        perror("cant send ");
         freeaddrinfo(res);
         close(fd);
         return -1;
@@ -171,21 +174,17 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             perror("recvfrom()");
             exit(1);
         }
-//        cout << "listened "  << " " << article_update <<endl;
+        cout << "listened "  << " " << article_update <<endl;
 
-//        std::string delimiter = ";";
-//        string article(article_update, strlen(article_update));
-//        int pos = article.find(delimiter);
-//        int index = atoi(article.substr(0, pos).c_str());
-//        string content = article.substr(pos+1);
-//        s->articlePool.articleMap[index];
-//        Article *temp = new Article(index,content);
-//        temp->index = index;
-//        temp->content = content;
-        //s->articlePool.articleMap.insert(std::pair<int,Article *>(index, temp));
-        s->articlePool.PrintArticlePoolStruct(s->articlePool.getArticle());
-        s->articlePool.decodeArticlePool(article_update);
-//        cout << "index: " << temp->index << " content: " << temp->content;
+        std::string delimiter = ";";
+        string article(article_update, strlen(article_update));
+        int pos = article.find(delimiter);
+        int index = atoi(article.substr(0, pos).c_str());
+        string content = article.substr(pos+1);
+        //if listen_for happened bcz of post call
+        s->articlePool.post(content);
+        //else if listen_for happened bcz of reply call
+        s->articlePool.reply(content,index);
 
 
 //        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
@@ -230,7 +229,8 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         printf("Error: creating socket\n");
         throw;
     }
-
+    int optval = 1;
+    setsockopt(insert_listen_fd, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
     si_me.sin_addr.s_addr= htonl(INADDR_ANY);
@@ -274,27 +274,22 @@ int PeerClient::post(char *content) {
         //post to articlePool
         output = articlePool.post(myString);
         //send article to other servers;
-        std::map<int,Article*>::reverse_iterator rit;
+        std::map<int,Article*>::iterator rit;
         Article *temp;
-        for (rit=articlePool.articleMap.rbegin(); rit!=articlePool.articleMap.rend(); ++rit)
+        for (rit=articlePool.articleMap.begin(); rit!=articlePool.articleMap.end(); ++rit)
             temp = rit->second;
-        cout << (temp->index) << temp->content << "before sending"<< endl;
-        articlePool.PrintArticlePoolStruct(articlePool.getArticle());
+        //cout << (temp->index) << temp->content << "before sending"<< endl;
+       // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
 
-//        string send_content;
-//        stringstream ss;
-//        ss << (temp->index+1);  //increment if coming from server
-//        cout << (temp->index+1) << temp->content << endl;
-//        send_content = ss.str();
-//        send_content.append(";");
-//        send_content.append(temp->content);
-//        cout << "content: " << send_content << endl;
-//
-//        insert(this, (temp->index+1), send_content);
+        string send_content;
+        stringstream ss;
+        ss << temp->index;  //increment if coming from server
+        send_content = ss.str();
+        send_content.append(";");
+        send_content.append(temp->content);
+        //cout << "content: " << send_content << endl;
 
-        string send_content(articlePool.encodeArticlePool(), strlen(articlePool.encodeArticlePool()));
-        cout << send_content <<endl;
-        insert(this, temp->index, send_content);
+        insert(this, (temp->index+1), send_content);
     } else {
         output = *post_1(content, pclnt);
     }
@@ -353,31 +348,28 @@ int PeerClient::reply(char *content, int index) {
     if (isCoordinator(server_ip)) {
         std::string myString(content, strlen(content));
         int result = articlePool.reply(myString, index);
-        //insert(this, articlePool.articleMap.end()->second->index, articlePool.articleMap.end()->second->content);
-        std::map<int,Article*>::reverse_iterator rit;
+        //send article to other servers;
+        std::map<int,Article*>::iterator rit;
         Article *temp;
-        for (rit=articlePool.articleMap.rbegin(); rit!=articlePool.articleMap.rend(); ++rit)
+        for (rit=articlePool.articleMap.begin(); rit!=articlePool.articleMap.end(); ++rit)
             temp = rit->second;
-        cout << (temp->index) << temp->content << endl;
-//        string send_content;
-//        stringstream ss;
-//        ss << (temp->index+1);  //increment if coming from server
-//        cout << (temp->index+1) << temp->content << endl;
-//        send_content = ss.str();
-//        send_content.append(";");
-//        send_content.append(temp->content);
-//        cout << "content: " << send_content << endl;
-//
-//        insert(this, (temp->index+1), send_content);
+        //cout << (temp->index) << temp->content << "before sending"<< endl;
+       // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
 
-        string send_content(articlePool.encodeArticlePool(), strlen(articlePool.encodeArticlePool()));
-        insert(this, temp->index, send_content);
+        string send_content;
+        stringstream ss;
+        ss << temp->index;  //increment if coming from server
+        send_content = ss.str();
+        send_content.append(";");
+        send_content.append(temp->content);
+        //cout << "content: " << send_content << endl;
+
+        insert(this, (temp->index+1), send_content);
         return result;
     } else {
         auto output = reply_1(content, index, pclnt);
         if (*output == 0) {
-            std::cout << "Can't reply to article " << index << " with " << content << std::endl;
-            //clnt_perror(clnt, "Cannot reply to ");
+            clnt_perror(pclnt, "Cannot reply to ");
         } else {
             std::cout << "Reply the article " << index << " with the new article " << *output << " " << content
                       << std::endl;

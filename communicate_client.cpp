@@ -35,15 +35,12 @@ public:
       if (clnt)
 	       clnt_destroy(clnt); 
     }
-
-    /*Function implementation to receive udp communication*/
 };
 
 void Client::post(char * content) {
     auto output = post_1(content, clnt);
     if (*output == 0) {
-        std::cout << "Post the article " << content << " fails" << std::endl;
-        //clnt_perror(clnt, "Cannot post");
+        clnt_perror(clnt, "Cannot post");
     } else {
         std::cout << "Post the article " << *output << " " << content << std::endl;
     }
@@ -52,9 +49,9 @@ void Client::post(char * content) {
 void Client::read() {
     auto output = read_1(clnt);
     if (output == NULL) {
-      clnt_perror(clnt, "Cannot read");
+        clnt_perror(clnt, "Cannot read");
     } else {
-    std::cout << "Read from server\n" << *output << std::endl;
+        std::cout << "Read from server\n" << *output << std::endl;
     }
 }
 
@@ -70,8 +67,7 @@ void Client::choose(int index) {
 void Client::reply(char * content, int index) {
     auto output = reply_1(content, index, clnt);
     if (*output == 0) {
-        std::cout << "Can't reply to article " << index << " with " << content << std::endl;
-        //clnt_perror(clnt, "Cannot reply to ");
+        clnt_perror(clnt, "Cannot reply to article of this index");
     } else {
         std::cout << "Reply the article " << index << " with the new article " << *output << " " << content << std::endl;
     }
