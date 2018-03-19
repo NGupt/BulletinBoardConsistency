@@ -1,3 +1,0 @@
-/home/gupta329/Dist_proj2/BulletinBoardConsistency/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/gupta329/Dist_proj2/BulletinBoardConsistency/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/gupta329/Dist_proj2/BulletinBoardConsistency/cmake-build-debug/CMakeFiles/BulletinBoardConsistency.dir
