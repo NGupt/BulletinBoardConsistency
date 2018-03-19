@@ -40,6 +40,7 @@ public:
     ArticlePoolStruct getLocalArticle();
     server_list buildServerList();
     int post(char * content);
+    int send_flag(int flag);
     string read();
     ArticleContent choose(int index);
     int reply(char * content, int index);

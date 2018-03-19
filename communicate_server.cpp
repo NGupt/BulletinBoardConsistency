@@ -399,6 +399,15 @@ ArticlePoolStruct PeerClient::getLocalArticle() {
     return articlePool.getArticle();
 }
 
+
+int PeerClient::send_flag(int flag) {
+    auto output = send_flag_1(flag, pclnt);
+    if (output == (int *) NULL) {
+        clnt_perror (pclnt, "call failed");
+    }
+    return *output;
+}
+
 server_list PeerClient::get_server_list() {
     server_list output;
     if (isCoordinator(server_ip)) {
@@ -486,6 +495,19 @@ reply_1_svc(char *content, int index, struct svc_req *rqstp) {
         cout << "Reply article " << index << " with:";
         cout << result << " " << content << endl;
     }
+    return &result;
+}
+
+
+int *
+send_flag_1_svc(int arg1,  struct svc_req *rqstp)
+{
+    static int  result;
+
+    /*
+     * insert server code here
+     */
+
     return &result;
 }
 

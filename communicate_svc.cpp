@@ -48,6 +48,12 @@ _reply_1 (reply_1_argument *argp, struct svc_req *rqstp)
 	return (reply_1_svc(argp->arg1, argp->arg2, rqstp));
 }
 
+static int *
+_send_flag_1 (int  *argp, struct svc_req *rqstp)
+{
+    return (send_flag_1_svc(*argp, rqstp));
+}
+
 static server_list *
 _get_server_list_1 (void  *argp, struct svc_req *rqstp)
 {
@@ -101,7 +107,14 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 			local = (char *(*)(char *, struct svc_req *)) _reply_1;
 			break;
 
-		case GET_SERVER_LIST:
+        case SEND_FLAG:
+            _xdr_argument = (xdrproc_t) xdr_int;
+            _xdr_result = (xdrproc_t) xdr_int;
+            local = (char *(*)(char *, struct svc_req *)) _send_flag_1;
+            break;
+
+
+        case GET_SERVER_LIST:
 			_xdr_argument = (xdrproc_t) xdr_void;
 			_xdr_result = (xdrproc_t) xdr_server_list;
 			local = (char *(*)(char *, struct svc_req *)) _get_server_list_1;
@@ -198,7 +211,22 @@ reply_1(char *arg1, int arg2,  CLIENT *clnt)
 	return (&clnt_res);
 }
 
-//TODO: implement it
+
+int *
+send_flag_1(int arg1,  CLIENT *clnt)
+{
+	static int clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, SEND_FLAG,
+				   (xdrproc_t) xdr_int, (caddr_t) &arg1,
+				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
+				   TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
 server_list *
 get_server_list_1(CLIENT *clnt)
 {

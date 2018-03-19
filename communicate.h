@@ -16,7 +16,7 @@ extern "C" {
 #define MAXIP 16
 #define MAXSERVERS 10
 #define MAXARTICLES 100
-#define MAXSTRING 101
+#define MAXSTRING 105
 #define MAXPOOLLENGTH 10505
 
 typedef char *str;
@@ -87,6 +87,9 @@ extern  ArticleContent * choose_1_svc(int , struct svc_req *);
 #define REPLY 4
 extern  int * reply_1(char *, int , CLIENT *);
 extern  int * reply_1_svc(char *, int , struct svc_req *);
+#define SEND_FLAG 5
+extern  int * send_flag_1(int , CLIENT *);
+extern  int * send_flag_1_svc(int , struct svc_req *);
 #define GET_SERVER_LIST 9
 extern  server_list * get_server_list_1(CLIENT *);
 extern  server_list * get_server_list_1_svc(struct svc_req *);
@@ -108,6 +111,9 @@ extern  ArticleContent * choose_1_svc();
 #define REPLY 4
 extern  int * reply_1();
 extern  int * reply_1_svc();
+#define SEND_FLAG 5
+extern  int * send_flag_1();
+extern  int * send_flag_1_svc();
 #define GET_SERVER_LIST 9
 extern  server_list * get_server_list_1();
 extern  server_list * get_server_list_1_svc();

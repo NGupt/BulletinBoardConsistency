@@ -35,6 +35,7 @@ program COMMUNICATE_PROG {
         string READ() = 2;
         ArticleContent CHOOSE(int) = 3;
         int REPLY(string, int) = 4;
+        int SEND_FLAG(int) = 5;
         server_list GET_SERVER_LIST() = 9;
         int JOIN_SERVER(IP, int) = 10;
     } = 1;
