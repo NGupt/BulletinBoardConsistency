@@ -27,11 +27,9 @@ public:
 class ArticlePool {
 private:
     vector<bool> isHeadArticle;
-    int count;
-
-
 
 public:
+    int count;
     map<int, Article*> articleMap;
     ArticlePool();
     ArticlePool(ArticlePoolStruct pool);

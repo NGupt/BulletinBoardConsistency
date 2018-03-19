@@ -85,7 +85,7 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     hints.ai_protocol = 0;
     hints.ai_flags = AI_ADDRCONFIG;
 
-    cout << "buf: " << buf <<endl;
+    //cout << "buf: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
     {
         perror("cant get addressinfo");
@@ -140,7 +140,7 @@ int PeerClient::insert(PeerClient *p, int art_id, string content)
             return -1;
         }
 
-        printf("Insert Complete.\n");
+        //printf("Insert Complete.\n");
         // send confirmation to client
         return result;
     }
@@ -174,18 +174,23 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             perror("recvfrom()");
             exit(1);
         }
-        cout << "listened "  << " " << article_update <<endl;
+       // cout << "listened "  << " " << article_update << endl;
 
         std::string delimiter = ";";
         string article(article_update, strlen(article_update));
         int pos = article.find(delimiter);
-        int index = atoi(article.substr(0, pos).c_str());
-        string content = article.substr(pos+1);
-        //if listen_for happened bcz of post call
-        s->articlePool.post(content);
-        //else if listen_for happened bcz of reply call
-        s->articlePool.reply(content,index);
 
+        string remaining_content = article.substr(pos+1);
+        pos = remaining_content.find(delimiter);
+        int index = 0;
+        if((remaining_content.substr(0, pos)) != "") {
+            index = atoi((remaining_content.substr(0, pos)).c_str());
+        }
+        string content = remaining_content.substr(pos+1);
+        //cout << "content " << content << " index " << index << endl;
+        //if listen_for happened bcz of post call
+        //s->articlePool.count += s->articlePool.getCount() + 1;
+        s->articlePool.storeArticle(content,index); //with index = 0 , it is same as post
 
 //        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
 //        {
@@ -265,6 +270,7 @@ PeerClient::~PeerClient() {
     if(insert_listen_thread.joinable()){
         insert_listen_thread.join();
     }
+    //close(sock);
 }
 
 int PeerClient::post(char *content) {
@@ -286,17 +292,18 @@ int PeerClient::post(char *content) {
         ss << temp->index;  //increment if coming from server
         send_content = ss.str();
         send_content.append(";");
+        send_content.append(";");
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
 
-        insert(this, (temp->index+1), send_content);
+        insert(this, temp->index, send_content);
     } else {
         output = *post_1(content, pclnt);
-    }
-    if (output == 0) {
-        clnt_perror(pclnt, "Cannot post");
-    } else {
-        std::cout << "Post the article " << output << " " << content << std::endl;
+        if (output == 0) {
+            clnt_perror(pclnt, "Cannot post");
+        } else {
+            std::cout << "Post the article " << output << " " << content << std::endl;
+        }
     }
     return output;
 }
@@ -358,13 +365,17 @@ int PeerClient::reply(char *content, int index) {
 
         string send_content;
         stringstream ss;
-        ss << temp->index;  //increment if coming from server
+        ss << (temp->index);  //increment if coming from server
         send_content = ss.str();
+        send_content.append(";");
+        stringstream replyindex;
+        replyindex << index;
+        send_content.append(replyindex.str());
         send_content.append(";");
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
 
-        insert(this, (temp->index+1), send_content);
+        insert(this, (temp->index), send_content);
         return result;
     } else {
         auto output = reply_1(content, index, pclnt);
@@ -420,7 +431,6 @@ int PeerClient::join_server(IP ip, int port) {
 ////////////////////////////peer server/////////////////////////////////////
 int *
 post_1_svc(char *content, struct svc_req *rqstp) {
-    cout << "in post_1_svc " << endl;
     //std::string myString(content, strlen(content));
     static int result = 0;
     //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
@@ -450,16 +460,16 @@ ArticleContent *
 choose_1_svc(int index, struct svc_req *rqstp) {
     static ArticleContent result;
     result = now->choose(index);
-    // if (result == NULL) {
-    //     strcpy(result.content, "");
-    //     result.index = 0;
-    //     cout << "The article with id " << index << " doesn't exist in the server." << endl;
-    // } else {
-    //     strcpy(result.content, resultArticle->content.c_str());
-    //     result.index = resultArticle->index;
-    //     cout << "The client choose the article: " << endl;
-    //     cout << result.index << " " << result.content << endl;
-    // }
+//     if (result == (ArticleContent *)NULL) {
+//         strcpy(result.content, "");
+//         result.index = 0;
+//         cout << "The article with id " << index << " doesn't exist in the server." << endl;
+//     } else {
+//         strcpy(result.content, resultArticle->content.c_str());
+//         result.index = resultArticle->index;
+//         cout << "The client choose the article: " << endl;
+//         cout << result.index << " " << result.content << endl;
+//     }
     return &result;
 }
 
@@ -468,8 +478,7 @@ reply_1_svc(char *content, int index, struct svc_req *rqstp) {
     //string resultStr(content, strlen(content));
     static int result = 0;
     //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
-    int res = now->reply(content, index);
-    result = res;
+    result = now->reply(content, index);
     if (result == 0) {
         cout << "Can't reply to article with id " << index << "." << endl;
     } else {
