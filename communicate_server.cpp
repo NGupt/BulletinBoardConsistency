@@ -7,6 +7,7 @@
 #include "communicate.h"
 #include "peer.h"
 #include <cstring>
+#include <algorithm> //for std::find
 
 
 using namespace std;
@@ -54,13 +55,17 @@ void outputServerList(PeerClient *p) {
 
 //join a serve to coordinator
 int PeerClient::joinServer(string ip, int port) {
-    serverList.push_back(make_pair(ip, port));
+    if(std::find(this->serverList.begin(), this->serverList.end(), make_pair(ip, port)) != this->serverList.end()) {
+    } else {
+        this->serverList.push_back(make_pair(ip, port));
+    }
     outputServerList(this);
+    return 0;
 }
 
 int PeerClient::updateServer(int art_id, string content, char *backup_IP, int backup_port) {
 
-    int result;
+    int result = -1;
 //    char buf[MAXPOOLLENGTH];
 //    snprintf(buf, MAXPOOLLENGTH, "Insert;%d;%s", art_id, content.c_str());
 
@@ -124,7 +129,7 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     freeaddrinfo(res);
     close(fd);
 
-    return s;
+    return 0;
 }
 
 int PeerClient::insert(PeerClient *p, int art_id, string content)
@@ -168,6 +173,8 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
     // Clear the buffer by filling null, it might have previously received data
     memset(article_update, '\0', MAXPOOLLENGTH);
 
+    int pos = 0;
+    int index = 0;
     // Try to receive some data; This is a blocking call
     while (1) {
         if ((recvfrom(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen)) < 0) {
@@ -178,11 +185,11 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
 
         std::string delimiter = ";";
         string article(article_update, strlen(article_update));
-        int pos = article.find(delimiter);
+        pos = article.find(delimiter);
 
         string remaining_content = article.substr(pos+1);
         pos = remaining_content.find(delimiter);
-        int index = 0;
+        index = 0;
         if((remaining_content.substr(0, pos)) != "") {
             index = atoi((remaining_content.substr(0, pos)).c_str());
         }
@@ -395,8 +402,10 @@ ArticlePoolStruct PeerClient::getLocalArticle() {
 }
 
 server_list PeerClient::get_server_list() {
+    server_list output;
     if (isCoordinator(server_ip)) {
-        outputServerList(this);
+        outputServerList(now);
+        return now->buildServerList();
     } else {
         auto output = get_server_list_1(pclnt);
         if (output == (server_list *) NULL) {
@@ -406,21 +415,20 @@ server_list PeerClient::get_server_list() {
         for (int i = 0; i < output->server_list_len; i++) {
             std::cout << (output->server_list_val + i)->ip << ":" << (output->server_list_val + i)->port << endl;
         }
+        return *output;
     }
 }
 
 int PeerClient::join_server(IP ip, int port) {
-    if (isCoordinator(server_ip)) {
-        joinServer(ip, port);
+    if (isCoordinator(ip)) {
+        return now->joinServer(ip, port);
     } else {
-        auto output = join_server_1(ip, port, pclnt);
-        if (output == (int *) NULL) {
+        if (join_server_1(ip, port, pclnt) == (int *) NULL) {
             clnt_perror(pclnt, "call failed");
-        } else {
-            std::cout << "join server " << *output << std::endl;
+            return -1;
         }
+        return 0;
     }
-    return 0;
 }
 ////////////////////////////peer client////////////////////////////////////////
 
@@ -431,9 +439,7 @@ int PeerClient::join_server(IP ip, int port) {
 ////////////////////////////peer server/////////////////////////////////////
 int *
 post_1_svc(char *content, struct svc_req *rqstp) {
-    //std::string myString(content, strlen(content));
     static int result = 0;
-    //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
     auto res = now->post(content);
     result = res;
     if (result == 0) {
@@ -448,7 +454,6 @@ post_1_svc(char *content, struct svc_req *rqstp) {
 char **
 read_1_svc(struct svc_req *rqstp) {
     static char *result = new char[MAXPOOLLENGTH];
-    //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
     string resultStr = now->read();
     strcpy(result, resultStr.c_str());
     cout << "Read from server:" << endl;
@@ -475,11 +480,9 @@ choose_1_svc(int index, struct svc_req *rqstp) {
 
 int *
 reply_1_svc(char *content, int index, struct svc_req *rqstp) {
-    //string resultStr(content, strlen(content));
-    static int result = 0;
-    //auto now = simulateUDP.find(make_pair("127.0.0.1", 1234))->second;
+    static int result = -1;
     result = now->reply(content, index);
-    if (result == 0) {
+    if (result == -1) {
         cout << "Can't reply to article with id " << index << "." << endl;
     } else {
         cout << "Reply article " << index << " with:";
@@ -490,20 +493,22 @@ reply_1_svc(char *content, int index, struct svc_req *rqstp) {
 
 server_list *
 get_server_list_1_svc(struct svc_req *rqstp) {
-    static server_list result = now->buildServerList();
-
+    static server_list result;
+    result = now->buildServerList();
     return &result;
 }
 
 int *
 join_server_1_svc(IP arg1, int arg2, struct svc_req *rqstp) {
-    cout << "join a server " << arg1 << " " << arg2 << " into coordinator" << endl;
-    string ips(arg1, strlen(arg1));
-    static int result = now->joinServer(ips, arg2);
-    /*
-     * insert server code here
-     */
+    static int result = -1;
 
+    string ips(arg1, strlen(arg1));
+    cout << "join a server " << ips << " " << arg2 << " into coordinator" << endl;
+
+    result = now->joinServer(ips, arg2);
+    if (result == -1) {
+        cout << "Can't join "<< endl;
+    }
     return &result;
 }
 ////////////////////////////peer server//////////////////////////////////
