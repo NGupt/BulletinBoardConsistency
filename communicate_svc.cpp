@@ -273,6 +273,10 @@ main (int argc, char **argv)
 	string coordinator_ip((char *) argv[3], strlen((char *)argv[3]));
 	int coordinator_port = stoi(argv[4]);
 
+	if(server_port == coordinator_port){
+		cout << "server_port needs to be different from coordinator port" << endl;
+		exit(1);
+	}
 	cout << "Start server at: " << endl;
 	cout << server_ip << " " << server_port << endl;
 

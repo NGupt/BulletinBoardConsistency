@@ -6,8 +6,6 @@
 
 #include "communicate.h"
 #include "peer.h"
-#include <cstring>
-#include <algorithm> //for std::find
 
 
 using namespace std;
@@ -18,13 +16,12 @@ using std::thread;
 #define SIG_PF void(*)(int)
 #endif
 
-int num_confirmations;
 
 PeerClient *now;
 
-int sock;
 thread insert_listen_thread;
-int insert_listen_fd;
+int num_confirmations = 0;
+
 
 bool PeerClient::isCoordinator(string ip) {
     return ip == coordinator_ip;
@@ -65,46 +62,49 @@ int PeerClient::joinServer(string ip, int port) {
     return 0;
 }
 
-int PeerClient::updateServer(string content, char *backup_IP, int backup_port) {
-
-    if ((udp_send_confirm(backup_IP, backup_port, content.c_str(), MAXPOOLLENGTH)) < 0) {
-        return -1;
+int PeerClient::updateAllServers(PeerClient *p, string content)
+{
+    int result = 0;
+    for (int i=0; i<(p->serverList.size()); i++) {
+        if(p->isCoordinator(p->serverList[i].first.c_str()))
+            continue;
+        printf("Updating %s:%d\n",p->serverList[i].first.c_str(), p->serverList[i].second);
+        result = p->udp_send_confirm((char*)(p->serverList[i].first.c_str()), p->serverList[i].second, content.c_str(), MAXPOOLLENGTH);
+        if (result == -1) {
+            printf("Update to backup failed");
+            return -1;
+        }
+        // send confirmation to client
     }
-
-
-    return 0;
+    while(num_confirmations < (p->serverList.size() - 1));
+    return result;
 }
-
 
 int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, const int buf_size) {
     int fd;
-    struct addrinfo hints;
+    struct addrinfo remoteAddr;
     struct addrinfo* res;
 
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_protocol = 0;
-    hints.ai_flags = AI_ADDRCONFIG;
+    memset(&remoteAddr, 0, sizeof(remoteAddr));
+    remoteAddr.ai_family = AF_UNSPEC;
+    remoteAddr.ai_socktype = SOCK_DGRAM;
+    remoteAddr.ai_protocol = 0;
+    remoteAddr.ai_flags = AI_ADDRCONFIG;
 
     //cout << "buf: " << buf <<endl;
-    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &hints, &res) != 0)
-    {
+    if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         return -1;
     }
 
-    fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-    if (fd == -1)
-    {
+    if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
         perror("cant create socket");
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
 
-    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1)
-    {
+    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1) {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
@@ -115,40 +115,17 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     printf("INFO: Insert: listening for confirmation\n");
     char recbuf[MAXPOOLLENGTH];
     if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
+        perror("could not receive confirmation");
         freeaddrinfo(res);
         close(fd);
         return -1;
     }
 
-    //print details of the client/peer and the data received
-    printf("Received Data: %s\n" , recbuf);
-
+    cout << "Received confirmation from: " << ip << endl;
     num_confirmations++;
-
     freeaddrinfo(res);
     close(fd);
-
     return 0;
-}
-
-int PeerClient::insert(PeerClient *p, string content)
-{
-    int result = 0;
-    for (int i=0; i<(p->serverList.size()); i++) {
-        if(p->isCoordinator(p->serverList[i].first.c_str()))
-            continue;
-        printf("Updating %s:%d\n",p->serverList[i].first.c_str(), p->serverList[i].second);
-        result = p->updateServer(content, (char*)(p->serverList[i].first.c_str()), p->serverList[i].second);
-        if (result == -1) {
-            printf("Update to backup failed");
-            return -1;
-        }
-
-        //printf("Insert Complete.\n");
-        // send confirmation to client
-    }
-    while(num_confirmations < (p->serverList.size() - 1));
-    return result;
 }
 
 void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
@@ -177,7 +154,6 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             exit(1);
         }
         // cout << "listened "  << " " << article_update << endl;
-
         std::string delimiter = ";";
         string article(article_update, strlen(article_update));
         pos = article.find(delimiter);
@@ -190,17 +166,14 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
         }
         string content = remaining_content.substr(pos+1);
         //cout << "content " << content << " index " << index << endl;
-        //if listen_for happened bcz of post call
-        //s->articlePool.count += s->articlePool.getCount() + 1;
         s->articlePool.storeArticle(content,index); //with index = 0 , it is same as post
 
-        cout << "resending recvd thing" << article_update << endl;
+        //cout << "resending recvd thing" << article_update << endl;
 
-        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1)
-        {
+        if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
             close(s->insert_listen_fd);
             s->insert_listen_fd = -1;
-            cout << "Error: acknowledging the received string" << endl;
+            perror("Error: acknowledging the received string");
             throw;
         }
     }
@@ -275,7 +248,7 @@ PeerClient::~PeerClient() {
     if(insert_listen_thread.joinable()){
         insert_listen_thread.join();
     }
-    close(sock);
+    close(this->insert_listen_fd);
 }
 
 int PeerClient::post(char *content) {
@@ -301,7 +274,7 @@ int PeerClient::post(char *content) {
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
 
-        insert(this, send_content);
+        updateAllServers(this, send_content);
     } else {
         output = *post_1(content, pclnt);
         if (output == 0) {
@@ -315,22 +288,9 @@ int PeerClient::post(char *content) {
 
 string PeerClient::read() {
     return articlePool.read();
-//
-//    if (isCoordinator(server_ip)) {
-//        return articlePool.read();
-//    } else {
-//        auto output = read_1(pclnt);
-//        if (output == NULL) {
-//            clnt_perror(pclnt, "Cannot read");
-//        } else {
-//            std::cout << "Read from server\n" << *output << std::endl;
-//        }
-//        return *output;
-//    }
 }
 
 ArticleContent PeerClient::choose(int index) {
-    //if (isCoordinator(server_ip)) {
     static ArticleContent result;
     result.content = new char[MAXSTRING];
     Article *resultArticle = articlePool.choose(index);
@@ -345,15 +305,6 @@ ArticleContent PeerClient::choose(int index) {
         cout << result.index << " " << result.content << endl;
     }
     return result;
-//    } else {
-//        auto output = choose_1(index, pclnt);
-//        if (output->index == 0) {
-//            std::cout << "Cannot choose article with id " << index << std::endl;
-//        } else {
-//            std::cout << "Choose the article:\n" << output->index << " " << output->content << std::endl;
-//        }
-//        return *output;
-//    }
 }
 
 int PeerClient::reply(char *content, int index) {
@@ -367,7 +318,6 @@ int PeerClient::reply(char *content, int index) {
             temp = rit->second;
         //cout << (temp->index) << temp->content << "before sending"<< endl;
         // articlePool.PrintArticlePoolStruct(articlePool.getArticle());
-
         string send_content;
         stringstream ss;
         ss << (temp->index);  //increment if coming from server
@@ -379,8 +329,7 @@ int PeerClient::reply(char *content, int index) {
         send_content.append(";");
         send_content.append(temp->content);
         //cout << "content: " << send_content << endl;
-
-        insert(this, send_content);
+        updateAllServers(this, send_content);
         return result;
     } else {
         auto output = reply_1(content, index, pclnt);
@@ -443,7 +392,7 @@ int PeerClient::join_server(IP ip, int port) {
 
 
 
-////////////////////////////peer server/////////////////////////////////////
+////////////////////////////coordinator/////////////////////////////////////
 int *
 post_1_svc(char *content, struct svc_req *rqstp) {
     static int result = 0;
@@ -472,16 +421,6 @@ ArticleContent *
 choose_1_svc(int index, struct svc_req *rqstp) {
     static ArticleContent result;
     result = now->choose(index);
-//     if (result == (ArticleContent *)NULL) {
-//         strcpy(result.content, "");
-//         result.index = 0;
-//         cout << "The article with id " << index << " doesn't exist in the server." << endl;
-//     } else {
-//         strcpy(result.content, resultArticle->content.c_str());
-//         result.index = resultArticle->index;
-//         cout << "The client choose the article: " << endl;
-//         cout << result.index << " " << result.content << endl;
-//     }
     return &result;
 }
 
@@ -531,4 +470,4 @@ join_server_1_svc(IP arg1, int arg2, struct svc_req *rqstp) {
     }
     return &result;
 }
-////////////////////////////peer server//////////////////////////////////
+////////////////////////////coordinator//////////////////////////////////
