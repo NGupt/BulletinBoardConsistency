@@ -111,23 +111,33 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
         return -1;
     }
 
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
+        perror("Error");
+    }
+
+
     /* Begin listening for confirmation of insert */
     printf("INFO: listening for confirmation\n");
     char recbuf[MAXPOOLLENGTH];
     if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
-        perror("could not receive confirmation");
+        perror("timed out, removing server from my serverList");
+        serverList.erase(std::remove(serverList.begin(), serverList.end(), pair<string,int>(ip,port)), serverList.end());
         freeaddrinfo(res);
         close(fd);
-        return -1;
+        return 0;
     }
 
-    // num_confirmations++;
-    freeaddrinfo(res);
-    close(fd);
     if (strcmp(recbuf,buf) == 0) {
         cout << "Received confirmation from: " << ip << endl;
         return 0;
     }
+
+    freeaddrinfo(res);
+    close(fd);
+
     return -1;
 }
 
@@ -179,6 +189,39 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             perror("Error: acknowledging the received string");
             throw;
         }
+    }
+}
+
+
+void decode(char *temp_articles, PeerClient *p){
+    int level_pos = 0;
+    int content_pos = 0;
+    int parent_id = 0;
+    int levels = 0;
+
+    std::string level_delimiter = "\n";
+    std::string content_delimiter = " ";
+    std::string content = "";
+    std::string temp = "";
+
+    string articles(temp_articles, strlen(temp_articles));
+
+    while(articles != "") {
+        level_pos = articles.find(level_delimiter);
+
+        temp = articles.substr(0, level_pos);
+        articles = articles.substr(level_pos + 1);
+
+        content_pos = temp.find(content_delimiter);
+        content = temp.substr(content_pos+1);
+        if(temp.substr(0,content_pos).c_str() == ""){
+            p->articlePool.storeArticle(content, parent_id);
+        }
+        else{
+            p->articlePool.storeArticle(content, 0);
+            parent_id = atoi(temp.substr(0,content_pos).c_str());
+        }
+        levels++;
     }
 }
 
@@ -235,13 +278,23 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         throw;
     }
     if(!isCoordinator(o_ip)) {
+        get_server_list();
+        //if server joined later, then get the latest article copy
+        if(articlePool.read() == ""){
+            char *temp_articles = *read_1(pclnt);
+           // cout << "empty article pool, output after update:\n" << temp_articles << endl;
+            decode(temp_articles, now);
+        }
+        //create listening udp thread
         insert_listen_thread = thread(listen_from, this, c_ip, server_port);
         insert_listen_thread.detach();
     }
+
     cout << "Initialization complete" << endl;
 
     std::cout << ".....Completed Server creation.....\n";
 }
+
 
 PeerClient::~PeerClient() {
     articlePool.releaseAll();

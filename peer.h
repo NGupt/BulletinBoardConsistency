@@ -20,6 +20,7 @@
 #include <iterator>
 #include <algorithm> //for std::find
 #include "exception.h"
+#include <sys/time.h>
 
 using namespace std;
 using std::to_string;
