@@ -219,11 +219,12 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     memset(&si_me, 0, sizeof(si_me));
     si_me.sin_family = AF_INET;
     si_me.sin_addr.s_addr= htonl(INADDR_ANY);
-    si_me.sin_port = htons(server_port);
 
     if (isCoordinator(o_ip)) {
+        si_me.sin_port = htons(coordinator_port);
         cout << "Coordinator started" << endl;
     } else {
+        si_me.sin_port = htons(server_port);
         cout << "Backup peer server started" << endl;
     }
 

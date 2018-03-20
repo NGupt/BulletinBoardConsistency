@@ -35,10 +35,7 @@ int PeerClient::reply(char *content, int index) {
     } else {
         output = *reply_1(content, index, pclnt);
         if (output == 0) {
-            clnt_perror(pclnt, "Cannot reply to ");
-        } else {
-            std::cout << "Reply the article " << index << " with the new article " << output << " " << content
-                      << std::endl;
+            clnt_perror(pclnt, "Cannot reply");
         }
     }
     return output;

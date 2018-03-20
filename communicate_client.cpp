@@ -41,8 +41,10 @@ void Client::post(char * content) {
     auto output = post_1(content, clnt);
     if (*output == 0) {
         clnt_perror(clnt, "Cannot post");
+    } else if (*output == -1){
+        std::cout << "\nCould not post at index" << std::endl;
     } else {
-        std::cout << "Post the article " << *output << " " << content << std::endl;
+        std::cout << "\nPosted article successfully" << std::endl;
     }
 }
 
@@ -51,16 +53,16 @@ void Client::read() {
     if (output == NULL) {
         clnt_perror(clnt, "Cannot read");
     } else {
-        std::cout << "Read from server\n" << *output << std::endl;
+        std::cout << "\nRead from server\n" << *output << std::endl;
     }
 }
 
 void Client::choose(int index) {
     auto output = choose_1(index, clnt);
     if (output->index == 0) {
-        std::cout << "Cannot choose article with id " << index << std::endl;
+        std::cout << "\nCannot choose article with id " << index << std::endl;
     } else {
-        std::cout << "Choose the article:\n" << output->index << " " << output->content << std::endl;
+        std::cout << "\nChosen article is:\n" << output->index << " " << output->content << std::endl;
     }
 }
 
@@ -69,9 +71,9 @@ void Client::reply(char * content, int index) {
     if (*output == 0) {
         clnt_perror(clnt, "Cannot reply");
     } else if (*output == -1){
-        cout << "Article with index " << index << " does not exist. Please retry.\n" << endl;
+        cout << "\nArticle with index " << index << " does not exist. Please retry.\n" << endl;
     } else {
-        std::cout << "Reply the article " << index << " with the new article " << *output << " " << content << std::endl;
+        std::cout << "\nReplied to article " << index << "successfully with " << content << std::endl;
     }
 }
 
@@ -80,10 +82,11 @@ void Client::get_server_list() {
     if (output == (server_list *) NULL) {
         clnt_perror (clnt, "call failed");
     } else {
-        std::cout << "server_list is :" << endl;
+        std::cout << "\nserver_list is :" << endl;
         for (int i = 0; i < output->server_list_len; i++) {
             std::cout << (output->server_list_val + i)->ip << ":" << (output->server_list_val + i)->port << endl;
         }
+        cout << endl;
     }
 }
 
