@@ -39,7 +39,7 @@ ArticlePool::ArticlePool(ArticlePoolStruct pool) {
 //
 //TODO
 ArticlePool::~ArticlePool() {
-    releaseAll();
+    //releaseAll();
 }
 
 void ArticlePool::releaseArticle(Article *article) {
@@ -80,16 +80,16 @@ int ArticlePool::storeArticle(string article, int father) {
         isHeadArticle.push_back(true);
         return count;
     } else {
-        //cout << "Article " << father << " doesn't exist." << endl;
+        cout << "Article index " << father << " doesn't exist" << endl;
+        return -1;
     }
-    return 0;
 }
 
 Article *ArticlePool::choose(int index) {
     if (articleMap.find(index) != articleMap.end()) {
         return articleMap[index];
     } else {
-        //cout << "Article " << index << " doesn't exist." << endl;
+        //cout << "Article index " << index << " doesn't exist." << endl;
         return NULL;
     }
 } //reply to article with index

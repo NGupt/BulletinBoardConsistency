@@ -67,7 +67,9 @@ void Client::choose(int index) {
 void Client::reply(char * content, int index) {
     auto output = reply_1(content, index, clnt);
     if (*output == 0) {
-        clnt_perror(clnt, "Cannot reply to article of this index");
+        clnt_perror(clnt, "Cannot reply");
+    } else if (*output == -1){
+        cout << "Article with index " << index << " does not exist. Please retry.\n" << endl;
     } else {
         std::cout << "Reply the article " << index << " with the new article " << *output << " " << content << std::endl;
     }

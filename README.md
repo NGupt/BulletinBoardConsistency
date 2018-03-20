@@ -9,22 +9,20 @@ make all
 ```
 
 How to use:
-
-Launch the RPC server with ./serverside   “local ip” “local port” "coordinator ip" "coordinator port"
-If coordinator_ip and local_ip are same, it is a coordinator
-
-Launch a client application in another process. Its usage is as follows;
-./clientside “local ip” “server ip”
+````
+Sequential consistency: Launch the RPC server with: ./serverside_seq   “local ip” “local port” "coordinator ip" "coordinator port"
+Read yur Write consistency: Launch the RPC server with: ./serverside_rw   “local ip” “local port” "coordinator ip" "coordinator port"
+Client application: Launch in another process with: ./clientside “local ip” “server ip”
+````
+NOTE: If coordinator_ip and local_ip are same, it is a coordinator
 
 Example of launching:
+````
 Coordinator:   `./serverside 128.101.37.27 1234 128.101.37.27 3456`
-
 Peer Server1:   `./serverside 128.101.37.11 2345 128.101.37.27 3456`
-
 Peer Server2:   `./serverside 128.101.37.07 4444 128.101.37.27 3456`
-
 Client     :   `./clientside 128.101.37.25 128.101.37.11`
-
+````
 Options on client side (post | read | choose | reply | get_server_list) where each has its function as follows -
 
 1) Post will return 0 if post fails, otherwise, it will return the id of posted article.
