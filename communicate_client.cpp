@@ -116,21 +116,14 @@ int main(int argc, char *argv[]) {
             continue;
         }
         char *article = new char[MAXSTRING];
-        string articleStr;
         int articleId = 0;
         string articleIdStr;
         bool articleIdCorrect =false;
         switch (func_number) {
             case 1:
                 std::cout << "Please enter the article content:\n";
-                strcpy(article, "");
-                while (1) {
-                    std::getline(cin, articleStr);
-                    if (articleStr.length() > 1) {
-                        break;
-                    }
-                }
-                strcpy(article, articleStr.substr(0, articleStr.length()).c_str());
+                std::cin.get();
+                std::cin.getline(article, MAXSTRING);
                 conn.post(article);
                 break;
             case 2:
@@ -163,13 +156,8 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 std::cout << "Please enter the reply article:\n";
-                while (1) {
-                    std::getline(cin, articleStr);
-                    if (articleStr.length() > 1) {
-                        break;
-                    }
-                }
-                strcpy(article, articleStr.substr(0, articleStr.length()).c_str());
+                std::cin.get();
+                std::cin.getline(article, MAXSTRING);
                 conn.reply(article, articleId);
                 break;
             case 5:

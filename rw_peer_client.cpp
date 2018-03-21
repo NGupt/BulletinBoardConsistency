@@ -5,15 +5,15 @@
 
 int PeerClient::post(char *content) {
     int output = -1;
+    std::string myString(content, strlen(content));
+    output = articlePool.post(myString);
     if (isCoordinator(server_ip)) {
-        std::string myString(content, strlen(content));
-        //post to articlePool
-        output = articlePool.post(myString);
         update_thread = thread(updateAllServers, this, articlePool, 0);
         update_thread.detach();
         return output;
     } else {
-        output = *post_1(content, pclnt);
+        update_thread = thread(post_1, content, pclnt);
+        update_thread.detach();
         if (output == 0) {
             clnt_perror(pclnt, "Cannot post");
         } else {
@@ -26,14 +26,15 @@ int PeerClient::post(char *content) {
 
 int PeerClient::reply(char *content, int index) {
     int output = -1;
+    std::string myString(content, strlen(content));
+    output = articlePool.reply(myString, index);
     if (isCoordinator(server_ip)) {
-        std::string myString(content, strlen(content));
-        output = articlePool.reply(myString, index);
         update_thread = thread(updateAllServers, this, articlePool, index);
         update_thread.detach();
         return output;
     } else {
-        output = *reply_1(content, index, pclnt);
+        update_thread = thread(reply_1, content, index, pclnt);
+        update_thread.detach();
         if (output == 0) {
             clnt_perror(pclnt, "Cannot reply");
         }
