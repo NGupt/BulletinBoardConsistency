@@ -1,13 +1,12 @@
 #pragma once
 
 #include "article.h"
+#include "peer.h"
 #include <vector>
 #include <unordered_map>
 #include <mutex>
 #include <memory>
 #include <thread>
-
-#define MAX_STR = 16; //TODO- Check the main project folder to update to right value
 
 class QuoSer : public PeerClient {
 
@@ -22,15 +21,14 @@ public :
     int fetchReadVote(int id, int mod_time);
 
 private:
-    CLIENT *pclnt;
-    char ip[MAX_STR];
+    char ip[MAXIP];
 
     std::mutex crit ;
     std::unordered_map<int, std::shared_ptr<std::mutex> > readlock;
     std::unordered_map<int, std::shared_ptr<std::mutex> > writelock;
 
 
-    std::vector<CLIENT *> sub;
+    std::vector<PeerClient *> subscribers;
     std::mutex update;
     std::vector<ArticlePool> updates;
     std::thread t_update;
