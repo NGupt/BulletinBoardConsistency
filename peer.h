@@ -57,6 +57,7 @@ public:
     int join_server(IP ip, int port);
     int joinServer(string ip, int port);
     int udp_send_confirm(const char *ip, int port, const char *buf, const int buf_size);
+    void decode_articles(char *temp_articles);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port);
     ~PeerClient();
 };

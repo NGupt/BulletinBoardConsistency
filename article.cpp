@@ -88,20 +88,20 @@ int ArticlePool::storeArticle(string article, int father) {
 
 
 int ArticlePool::writeArticle(string article, int father, int index) {
-    cout << "in article " << index << " " << article << " " << father << " " << count << endl;
+   // cout << "in article " << index << " " << article << " " << father << " " << count << endl;
 
     if (father > 0 && father <= count) {
         count++;
         Article *head = articleMap[father];
         Article *now = new Article(index, article);
         head->nextArticles.push_back(now);
-        articleMap[index] = now;
+        articleMap[count] = now;
         isHeadArticle.push_back(false);
         return count;
     } else if (father == 0) {
         count++;
         Article *now = new Article(index, article);
-        articleMap[index] = now;
+        articleMap[count] = now;
         isHeadArticle.push_back(true);
         return count;
     } else {
@@ -184,16 +184,31 @@ void ArticlePool::readArticleContent(string &articles, Article *now, int level) 
 
 
 //read the content of article
+//string ArticlePool::read() {
+//    string articles = "";
+//    for (int i = 1; i <= count; i++) {
+//        if (isHeadArticle[i - 1]) {
+//            Article *now = articleMap[i];
+//            readArticleContent(articles, now, 0);
+//        }
+//    }
+//    return articles;
+//}
+
+
 string ArticlePool::read() {
     string articles = "";
-    for (int i = 1; i <= count; i++) {
-        if (isHeadArticle[i - 1]) {
-            Article *now = articleMap[i];
+    //std::map<int, Article*> mymap;
+    std::map<int, Article*>::iterator it;
+    for (it=articleMap.begin(); it!=articleMap.end(); ++it){
+        if (isHeadArticle[it->first-1]) {
+            Article *now = it->second;
             readArticleContent(articles, now, 0);
         }
     }
     return articles;
 }
+
 
 int ArticlePool::getCount() {
     return count;
