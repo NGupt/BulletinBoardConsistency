@@ -132,6 +132,8 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
 
     if (strcmp(recbuf,buf) == 0) {
         cout << "Received confirmation from: " << ip << endl;
+        freeaddrinfo(res);
+        close(fd);
         return 0;
     }
     freeaddrinfo(res);
@@ -224,7 +226,7 @@ void PeerClient::decode_articles(char *temp_articles){
         content_pos = line.find(content_delimiter);
         content = line.substr(content_pos + 1);
         index = atoi(line.substr(0, content_pos).c_str());
-//        cout << index << " " << content << " " << parent_id << endl;
+        //cout << index << " " << content << " " << parent_id << endl;
         if(reply_flag)
             articlePool.writeArticle(content, parent_id, index);
         else

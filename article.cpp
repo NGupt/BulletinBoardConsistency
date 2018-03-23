@@ -88,21 +88,26 @@ int ArticlePool::storeArticle(string article, int father) {
 
 
 int ArticlePool::writeArticle(string article, int father, int index) {
-   // cout << "in article " << index << " " << article << " " << father << " " << count << endl;
+    //cout << "in article " << index << " " << article << " " << father << " " << count << endl;
 
-    if (father > 0 && father <= count) {
-        count++;
-        Article *head = articleMap[father];
-        Article *now = new Article(index, article);
-        head->nextArticles.push_back(now);
-        articleMap[count] = now;
-        isHeadArticle.push_back(false);
-        return count;
-    } else if (father == 0) {
+    map<int, Article*>::iterator iter;
+
+    iter = articleMap.find(father);
+
+    if (father == 0) {
         count++;
         Article *now = new Article(index, article);
         articleMap[count] = now;
         isHeadArticle.push_back(true);
+        return count;
+    } else if (iter->first > 0 && iter->first <= count) {
+        count++;
+
+        Article *head = articleMap[iter->first];
+        Article *now = new Article(index, article);
+        head->nextArticles.push_back(now);
+        articleMap[count] = now;
+        isHeadArticle.push_back(false);
         return count;
     } else {
         cout << "Article index " << father << " doesn't exist" << endl;
