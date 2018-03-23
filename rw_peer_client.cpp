@@ -46,7 +46,6 @@ string PeerClient::read() {
     return articlePool.read();
 }
 
-//TODO: FIX
 ArticleContent PeerClient::choose(int index) {
     static ArticleContent result;
     result.content = new char[MAXSTRING];

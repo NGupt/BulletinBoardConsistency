@@ -16,7 +16,7 @@ void encodeInt(char *& buffer, int x);
 string decodeString(char *& buffer, int len);
 int decodeInt(char *& buffer);
 
-struct Article {
+class Article {
 public:
     string content;
     int index;
@@ -54,6 +54,7 @@ public:
     string read();
     ArticlePoolStruct getArticle();
     int storeArticle(string article, int father);
+    int writeArticle(string article, int father, int index);
     void readArticleContent(string & articles, Article *now, int level);
     void getArticleContent(ArticleStruct* &articleP, Article *now, int level);
     //ArticlePool deepCopy();

@@ -6,6 +6,106 @@ PeerClient *now;
 bool PeerClient::isCoordinator(string ip) {
     return ip == coordinator_ip;
 }
+//
+//void decode(char *temp_articles, PeerClient *p){
+//    int level_pos = 0;
+//    int content_pos = 0;
+//    int parent_id = 0;
+//    int levels = 0;
+//
+//    std::string level_delimiter = "\n";
+//    std::string content_delimiter = " ";
+//    std::string content = "";
+//    std::string temp = "";
+//
+//    string articles(temp_articles, strlen(temp_articles));
+//
+//    while(articles != "") {
+//        level_pos = articles.find(level_delimiter);
+//
+//        temp = articles.substr(0, level_pos);
+//        articles = articles.substr(level_pos + 1);
+//
+//        content_pos = temp.find(content_delimiter);
+//        content = temp.substr(content_pos+1);
+
+
+
+
+
+
+
+
+
+//        p->articlePool.articleMap[parent_id]->nextArticles.push_back(content);
+//
+//
+//        if(parent_id == 0)
+//            isHeadArticle.push_back(true);
+//        else
+//            isHeadArticle.push_back(false);
+//
+//        while(temp.substr(0,content_pos).c_str() == ""){
+//            content_pos = temp.find(content_delimiter);
+//            content = temp.substr(content_pos+1);
+//        }
+//        parent_id = atoi(temp.substr(0,content_pos).c_str());
+//        p->articlePool.articleMap[parent_id]->content = content;
+//
+//        levels++;
+//    }
+//    p->articlePool.count = levels;
+//
+//
+//    Article *head = articleMap[levels];
+//    Article *now = new Article(levels, content);
+//    head->nextArticles.push_back(now);
+//    articleMap[levels] = now;
+//
+//
+//}
+
+void decode(char *temp_articles, PeerClient *p){
+    int line_pos = 0;
+    int content_pos = 0;
+    int parent_id = 0;
+    int num_lines = 0;
+    int index = 1;
+    bool reply_flag = false;
+    std::string line_delimiter = "\n";
+    std::string content_delimiter = " ";
+    std::string reply_delimiter = "\t";
+    std::string content = "";
+    std::string line = "";
+
+    string articles(temp_articles, strlen(temp_articles));
+
+    while(articles != "") {
+        line_pos = articles.find(line_delimiter);
+
+        line = articles.substr(0, line_pos);   //returning line
+        articles = articles.substr(line_pos + 1);  //returning rest of levels
+
+        reply_flag = false;
+        content_pos = line.find(reply_delimiter);
+        while((content_pos = line.find(reply_delimiter)) == 0) {
+            line = line.substr(content_pos + 1);  //returning reply line without tab
+            reply_flag = true;
+        }
+        content_pos = line.find(content_delimiter);
+        content = line.substr(content_pos + 1);
+        index = atoi(line.substr(0, content_pos).c_str());
+        cout << index << " " << content << " " << parent_id << endl;
+        if(reply_flag)
+            p->articlePool.writeArticle(content, parent_id, index);
+        else
+            p->articlePool.writeArticle(content, 0, index );
+
+        parent_id = atoi(line.substr(0,content_pos).c_str());
+        num_lines++;
+    }
+}
+
 
 server_list PeerClient::buildServerList() {
     server_list res;
@@ -246,9 +346,22 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         perror("binding socket");
         throw;
     }
+//    if(!isCoordinator(o_ip)) {
+//        insert_listen_thread = thread(listen_from, this, c_ip, server_port);
+//        insert_listen_thread.detach();
+//    }
     if(!isCoordinator(o_ip)) {
+        get_server_list();
+        //if server joined later, then get the latest article copy
+        if(articlePool.read() == ""){
+            char *temp_articles = *read_1(pclnt);
+            // cout << "empty article pool, output after update:\n" << temp_articles << endl;
+            decode(temp_articles, now);
+        }
+        //create listening udp thread
         insert_listen_thread = thread(listen_from, this, c_ip, server_port);
         insert_listen_thread.detach();
+        cout << articlePool.read() << endl;
     }
     cout << "Initialization complete" << endl;
 
