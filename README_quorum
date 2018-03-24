@@ -1,0 +1,12 @@
+he idea behind implementing consistency with a quorum is to maintain consistency in one group (that contains the majority of replicas) and forcing, by construction, that reads and writes cannot violate the consistency within that group.
+
+This is done by only allowing updates within a group of replicas that contains the majority of replicas, so that at least one node witnesses all the updates; this is related to the second condition you've mentioned. In more details, consider a scenario for writing:
+
+To complete a write, a client must successfully place the updated data item on more than N/2 (i.e. a majority of) replicas. (The updated data item will be assigned a new version number that is obtained by incrementing its current version number.)
+Since the write quorum engages a majority of the replicas, two distinct write operations cannot succeed at the same time. (There do not exist two distinct groups that contain majorities of replicas.)
+Therefore, all write operations are serialized and therefore consistency is guaranteed. (At least one node has to be included in two consecutive write operations, while that node will have the highest current version number.)
+Note that consistency overall, has to be ensured with respect to both writing and reading. (As an extreme example, a system that does not perform reads will always be consistent.) To that end, mechanisms for distinguishing newer from older values is needed (e.g. a simple version number, as mentioned before) for achieving consistent read operations. This is related to the first condition you've mentioned: in turn, reading can be achieved with N + x - Nw replicas (where Nw + Nr = N + x, since Nw + Nr > N). Thus the intersection of the read quorum (of Nr nodes) and the write quorum (of Nw nodes) cannot be empty, so reads cannot overlap with writes, i.e. each read will have to consult at least one replica with the current data item (determined by it's version number).
+
+Note that to control concurrency, mechanisms such as two-phase locking can be used -- for initial query from a set replicas, a reader can use read locks and a writer can use write locks. The locks are released after the operation completes or aborts.
+
+The read/write quorum scheme was first proposed in [1] and it was later generalized into the form you've mentioned in [2]. (These papers cover the topic in more detail.)
