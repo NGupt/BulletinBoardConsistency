@@ -2,6 +2,8 @@
 
 #include "article.h"
 #include "peer.h"
+#include "quorum.h"
+#include "communicate.h"
 #include <vector>
 #include <unordered_map>
 #include <mutex>
@@ -22,7 +24,7 @@ public :
 
     int synchronizer(ArticlePool art);
     map<int, Article*> art_tree;
-
+    int self_version = 0;
     void udp_receive_vote(QuoServer *s,string r_ip, int port);
     int udp_send_vote(const char *ip, int port, const char *buf, const int buf_size);
 private:

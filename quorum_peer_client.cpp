@@ -5,6 +5,60 @@ using std::vector;
 using std::mutex;
 using std::make_shared;
 
+#include "quorum.h"
+
+//
+///////////////////////serverside//////////////////////////////
+//int *
+//queue_up_1_svc(int art_id, char *content,  struct svc_req *rqstp)
+//{
+//    static int  result;
+//    return &result;
+//}
+//
+//int *
+//write_up_1_svc(ArticlePool art,  struct svc_req *rqstp)
+//{
+//    static int  result;
+//    return &result;
+//}
+//
+//int *
+//fetch_write_vote_1_svc(int id, int mod_time,  struct svc_req *rqstp)
+//{
+//    static int  result;
+//    return &result;
+//}
+//
+//int *
+//read_vote_1_svc(int id, int mod_time,  struct svc_req *rqstp)
+//{
+//    static int  result;
+//    return &result;
+//}
+//////////////////////////serverside////////////////////////
+//
+//
+//
+/////////////////////////clientside////////////////////////
+//if (queue_up_1(queue_up_1_art_id, queue_up_1_content, clnt) == (int *) NULL) {
+//clnt_perror (pclnt, "call failed");
+//}
+//if (write_up_1(write_up_1_art, clnt) == (int *) NULL) {
+//clnt_perror (pclnt, "call failed");
+//}
+//if (fetch_write_vote_1(fetch_write_vote_1_id, fetch_write_vote_1_mod_time, clnt) == (int *) NULL) {
+//clnt_perror (pclnt, "call failed");
+//}
+//if (read_vote_1(read_vote_1_id, read_vote_1_mod_time, clnt) == (int *) NULL) {
+//clnt_perror (pclnt, "call failed");
+//}
+////////////////////////clientside//////////////////////////
+
+
+
+
+
 
 int QuoServer::synchronizer(ArticlePool art) {
     char *temp_articles = *read_1(pclnt);
@@ -39,13 +93,11 @@ QuoServer::QuoServer(string ip, int port, string coordinator_ip, int coordinator
         subscribers.push_back(NULL);
         subscriber_lock.unlock();
     } else {
-        join_server(o_ip, port);  //ToDo: Our coordinator is not part of client accessible server list in case of quorum consistency
+        join_server(o_ip, port);  // Our coordinator is not part of client accessible server list in case of quorum consistency
         get_server_list();
     }
 
-
     sockaddr_in si_me;
-    //printf("Begin listening to requests from the other servers...\n");
     insert_listen_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (insert_listen_fd == -1) {
         perror("Error: creating socket");
@@ -104,7 +156,7 @@ QuoServer::~QuoServer() {
     close(this->insert_listen_fd);
 }
 
-int QuoServer::udp_send_vote(const char *ip, int port, const char *buf, const int buf_size) {
+int QuoServer::udp_ask_vote(const char *ip, int port, const char *buf, const int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -135,10 +187,73 @@ int QuoServer::udp_send_vote(const char *ip, int port, const char *buf, const in
         close(fd);
         return -1;
     }
+
+    /* Begin listening for confirmation of, else remove server from serverList*/
+    char recbuf[MAXPOOLLENGTH];
+    if ((recvfrom(fd, recbuf, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
+
+        perror("timed out, removing server from my serverList");
+        serverList.erase(std::remove(serverList.begin(), serverList.end(), pair<string,int>(ip,port)), serverList.end());
+        freeaddrinfo(res);
+        close(fd);
+        return 0;
+    }
+
+    int version_pos = recbuf.find(buf);
+    int version = atoi(recbuf.substr(content_pos + 1).c_str());
     freeaddrinfo(res);
     close(fd);
-    return -1;
+    return version;
 }
+
+
+
+int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *client_ip, int client_port, const char *buf, const int buf_size) {
+    int fd;
+    struct addrinfo remoteAddr;
+    struct addrinfo* res;
+
+    memset(&remoteAddr, 0, sizeof(remoteAddr));
+    remoteAddr.ai_family = AF_UNSPEC;
+    remoteAddr.ai_socktype = SOCK_DGRAM;
+    remoteAddr.ai_protocol = 0;
+    remoteAddr.ai_flags = AI_ADDRCONFIG;
+
+    //cout << "buf: " << buf <<endl;
+    if (getaddrinfo(serv_ip, std::to_string(static_cast<long long>(serv_port)).c_str(), &remoteAddr, &res) != 0) {
+        perror("cant get addressinfo");
+        freeaddrinfo(res);
+        return -1;
+    }
+
+    if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
+        perror("cant create socket");
+        freeaddrinfo(res);
+        close(fd);
+        return -1;
+    }
+
+    const int new_buf_length = buf_size + MAXIP + 4;
+
+    string new_buf("");
+    new_buf.append(client_ip);
+    new_buf.append(";");
+    new_buf = std::to_string(client_port);
+    new_buf.append(";");
+    new_buf.append(buf);
+    if ((sendto(fd, new_buf, new_buf_length, 0, res->ai_addr, res->ai_addrlen)) == -1) {
+        perror("cant send ");
+        freeaddrinfo(res);
+        close(fd);
+        return -1;
+    }
+    freeaddrinfo(res);
+    close(fd);
+    return 0;
+}
+
+
+
 
 void QuoServer::udp_receive_vote(QuoServer *s,string r_ip, int port){
     struct sockaddr_in remote_addr, self_addr;
@@ -184,8 +299,7 @@ void QuoServer::udp_receive_vote(QuoServer *s,string r_ip, int port){
         if(s->articlePool.choose(index) == NULL)
             s->articlePool.storeArticle(content,reply_index); //with index = 0 , it is same as post
 
-        //cout << "resending recvd thing" << article_update << endl;
-
+        //resend the received data to check if server is up
         if ((sendto(s->insert_listen_fd, article_update, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
             close(s->insert_listen_fd);
             s->insert_listen_fd = -1;
@@ -196,71 +310,95 @@ void QuoServer::udp_receive_vote(QuoServer *s,string r_ip, int port){
 }
 
 
-
+bool choose_first(const std::pair<int, string> &lhs,
+                   const std::pair<int, string> &rhs) {
+    return lhs.first < rhs.first ;
+}
 
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
-//Has to be integrated with ArticlePool structure
+//TODO:Has to be integrated with ArticlePool structure
 int QuoServer::ReadVote(ArticlePool pool) {
-
 // initializing the vote to read article
+    vector<int> versions;
+    versions.push_back(0);
 
-    vector<int> voters;
-    voters.push_back(-1);
-//So here we need to get number of connections before starting the vote. Hence we need to iterate over the server list and push them
-    // to our vector
-    for (int i=0; i< serverList.size();i++) {
-        voters.push_back(i);
-    }
 
-    auto it = voters.begin();
+    vector<pair<int,string>> ReadQuorumList;
+    //So here we need to get number of connections before starting the vote.
+    // Hence we need to iterate over the server list and push them to our vector
+//    for (int i=0; i< serverList.size();i++) {
+//        voters.push_back(i);
+//    }
+    int serv_version = 0;
+
+    auto it = ReadQuorumList.begin();
     //Should be number of active clients
-    int start_size =   serverList.size() ;
+    int start_size = serverList.size() ;
     int num_votes = 0;
 
-    id = art_tree[i]->first;
+    //int id = art_tree[i]->first;
+    //int id = articlePool.count; //number of articles in pool
+    //randomly select some servers
     while(num_votes <= start_size/2) {
-        if (it == voters.end()) {
-            it = voters.begin();
+        if (it == ReadQuorumList.end()) {
+            it = ReadQuorumList.begin();
         }
         //We need ask our own vote as well !?
-        if ((*it) != -1){
+        char *vote_for = "Read";
+        if ((*it) != NULL) {
             //If not an active connection
-            //udp_send_vote(serverList[i].first.c_str(), serverList[i].second, to_string(num_votes), MAXPOOLLENGTH)
-            if () //TODO: How to check in udp whether a server is active or not
+//            if () //TODO: How to check in udp whether a server is active or not
+//            {
+//                it = voters.erase(it);
+//            }
+            if ((serv_version = udp_ask_vote(serverList[num_votes].first.c_str(), serverList[num_votes].second,
+                                             vote_for, vote_for.length())) < 0)
+                // TODO:We send the request to server
             {
-                it = voters.erase(it);
-            }
-            else if (udp->send() ) // TODO:We send the request to server
-            {
-            }
-            else {
-                char * response ;
-                //To check for vote response
-                //udp_receive_vote(this, r_ip,  port);
-                if (udp->receive) {
-                }
-                else if (response[0] =1 ) {
-                    //Response YES received
-                    num_votes++;
-                }
-                else{
-                    it++;
-
-                }
-            }
-        }
-        else {
-            int vote = getReadVote(id);
-            if (vote) {
-                it = voters.erase(it);
+                cout << "Could not ask for vote" << endl;
+            } else {
+                ReadQuorumList.push_back(serv_version, make_pair(serverList[num_votes].first.c_str()));
+                versions.push_back(serv_version);
                 num_votes++;
-            }
-            else {
-                ++it;
             }
         }
     }
+    auto max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
+    cout << "max1: " << max1->second;
+    if(self_version <= max1->first) {
+        //TODO search the read quorum for version given by serv_index, get the server target ip corresponding to it
+        string target_serv_ip = max1->second;
+        udp_fwd_req(target_serv_ip, serv_port, client_ip, client_port, *buf, buf_size);
+    }
+    else
+        self_version = max1->first;
+
+//
+//    char *response;
+//    //To check for vote response
+//    if (udp_receive_vote(this, serverList[i].first.c_str(), serverList[i].second) < 0) {
+//        cout << "Could not receive vote " << endl;
+//    } else if (response[0] == 0) {
+//        //Response YES received
+//        num_votes++;
+//    } else {
+//        it++;
+//    }
+//
+//    {
+//        int vote = getReadVote(id);
+//        if (vote) {
+//            it = voters.erase(it);
+//            num_votes++;
+//        }
+//        else {
+//            ++
+//                    it;
+//        }
+//    }
+}
+
 
     //At this point voting is done
     /* Vote done. Push current version to all subscribers */
@@ -278,22 +416,15 @@ int QuoServer::getReadVote(int id)
 {
     printf("INFO: Read vote %d requested\n", id);
     int vote = !isWriter(id);
-    if (vote)
-    {
+    if (vote) {
         cout << "INFO:" << server_ip << "voted for READ " << id << endl;
     }
-    else
-    {
+    else {
         cout << "INFO:" << server_ip << "voted against READ " << id << endl;
-    }
-
-    if (!vote)
-    {
         return 0;
     }
 
-    if (readlock[id]->try_lock())
-    {
+    if (readlock[id]->try_lock()) {
         printf("INFO: Read-locking %d\n", id);
     }
 
