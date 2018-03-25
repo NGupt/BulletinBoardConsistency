@@ -5,6 +5,7 @@
 using namespace std;
 using std::vector;
 using std::mutex;
+using std::thread;
 using std::make_shared;
 
 //#include "quorum.h"
@@ -105,7 +106,7 @@ QuoServer::~QuoServer() {
     close(this->insert_listen_fd);
 }
 
-int QuoServer::udp_ask_vote(const char *ip, int port, const char *buf, const int buf_size) {
+int QuoServer::udp_ask_vote(const char *ip, int port, const char *buf, int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -147,8 +148,9 @@ int QuoServer::udp_ask_vote(const char *ip, int port, const char *buf, const int
         return 0;
     }
 
-    int version_pos = recbuf.find(buf);
-    int version = atoi(recbuf.substr(version_pos + 1).c_str());
+    string recvbuf(recbuf, strlen(recbuf));
+    int version_pos = recvbuf.find(buf);
+    int version = atoi(recvbuf.substr(version_pos + 1).c_str());
     freeaddrinfo(res);
     close(fd);
     return version;
@@ -156,7 +158,7 @@ int QuoServer::udp_ask_vote(const char *ip, int port, const char *buf, const int
 
 
 
-int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *client_ip, int client_port, const char *buf, const int buf_size) {
+int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *client_ip, int client_port, const char *buf, int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -189,7 +191,7 @@ int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *clien
     new_buf = std::to_string(client_port);
     new_buf.append(";");
     new_buf.append(buf);
-    if ((sendto(fd, new_buf, new_buf_length, 0, res->ai_addr, res->ai_addrlen)) == -1) {
+    if ((sendto(fd, new_buf.c_str(), new_buf_length, 0, res->ai_addr, res->ai_addrlen)) == -1) {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
@@ -260,6 +262,8 @@ bool choose_first(const std::pair<int, string> &lhs,
     return lhs.first < rhs.first ;
 }
 
+
+
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
 //TODO:Has to be integrated with ArticlePool structure
@@ -305,19 +309,22 @@ int QuoServer::ReadVote(ArticlePool pool) {
             {
                 cout << "Could not ask for vote" << endl;
             } else {
-                ReadQuorumList.push_back(serv_version, make_pair(serverList[num_votes].first.c_str()));
+                ReadQuorumList.push_back(make_pair(serv_version, serverList[num_votes].first));
                 versions.push_back(serv_version);
                 num_votes++;
             }
         }
 
-
+        //TODO: get these values
+    int serv_port, client_port, buf_size;
+    const char *client_ip;
+    const char *buffer;
     auto max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
     std::cout << "max1: " << max1->second;
     if(self_version <= max1->first) {
         //TODO search the read quorum for version given by serv_index, get the server target ip corresponding to it
         string target_serv_ip = max1->second;
-        udp_fwd_req(target_serv_ip, serv_port, client_ip, client_port, *buf, buf_size);
+        udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, buffer, buf_size);
     }
     else{
         self_version = max1->first;
@@ -326,13 +333,13 @@ int QuoServer::ReadVote(ArticlePool pool) {
 
 
     //At this point voting is done
-    /* Vote done. Push current version to all subscribers */
-    cout << "INFO: Read vote " << id << " concluded" << endl;
-    crit.lock();
-    ArticlePool pool_current_version = art_tree[id]; //TODO: Sending updated article
-    crit.unlock();
-    synchronizer(pool_current_version);
-    clearReadVote(id); //Clearing all votes
+    /* Vote done. ToDo: Push current version to all subscribers */
+//    cout << "INFO: Read vote " << id << " concluded" << endl;
+//    crit.lock();
+//    ArticlePool pool_current_version = art_tree[id]; //TODO: Sending updated article
+//    crit.unlock();
+//    synchronizer(pool_current_version);
+//    clearReadVote(id); //Clearing all votes
 
     return 0;
 

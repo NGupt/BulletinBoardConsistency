@@ -40,11 +40,10 @@ int port; string coordinator_ip; int coordinator_port;
     int self_version = 0;
     vector<pair<int,string>> ReadQuorumList;
 
-    int udp_ask_vote(const char* ip, int port, const char* buf, const int buf_size);
+    int udp_ask_vote(const char* ip, int port, const char* buf, int buf_size);
     void udp_receive_vote(QuoServer *s,string r_ip, int port);
-    int udp_send_vote(const char *ip, int port, const char *buf, const int buf_size);
-    int udp_fwd_req(const char*, int, const char*, int, const char*, int port);
-    static void listen_from(PeerClient *s, string remote_ip, int port);
+    int udp_fwd_req(const char* target_serv_ip, int serv_port, const char* client_ip, int client_port, const char* buf, int buf_size);
+    static void listen_from(QuoServer *s, string remote_ip, int port);
 
 private:
     //char ip[MAXIP];
