@@ -6,8 +6,8 @@ using std::mutex;
 using std::thread;
 using std::make_shared;
 
-bool choose_first(const std::pair<int, string> &lhs,
-                  const std::pair<int, string> &rhs) {
+bool choose_first(const std::pair<int,pair<string,int> > &lhs,
+                  const std::pair<int,pair<string,int> > &rhs) {
     return lhs.first < rhs.first ;
 }
 
@@ -196,7 +196,7 @@ int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *clien
 }
 
 //coordinator to latest pool
-string QuoServer::udp_get_updated_pool(const char *ip, int port, const char *buf, const int buf_size) {
+char * QuoServer::udp_get_updated_pool(const char *ip, int port, const char *buf, const int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -229,7 +229,6 @@ string QuoServer::udp_get_updated_pool(const char *ip, int port, const char *buf
     }
 
     /* Begin listening for confirmation of, else remove server from serverList*/
-    char pool_content[MAXPOOLLENGTH];
     memset(pool_content,'\0', MAXPOOLLENGTH);
     if ((recvfrom(fd, pool_content, MAXPOOLLENGTH, 0, res->ai_addr, &res->ai_addrlen)) < 0) {
         perror("timed out, removing server from my serverList");
@@ -430,7 +429,8 @@ int QuoServer::ReadVote(ArticlePool pool) {
     //TODO: get these values
     int client_port, buf_size;
     const char *client_ip;
-    auto max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
+    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+    max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
     std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
     //At this point voting is done
     //search the read quorum for version given by serv_index, get the server target ip corresponding to it
@@ -439,9 +439,9 @@ int QuoServer::ReadVote(ArticlePool pool) {
     string request = "POOL;";
     crit.lock();
     //TODO: read updated pool
-    string pool_content = udp_get_updated_pool(max1->second.first.c_str(), max1->second.second, request.c_str(), MAXPOOLLENGTH);
+    char *pool_content = udp_get_updated_pool(max1->second.first.c_str(), max1->second.second, request.c_str(), MAXPOOLLENGTH);
     crit.unlock();
-    udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, pool_content.c_str(), buf_size);
+    udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, pool_content, buf_size);
     return 0;
 }
 
@@ -470,7 +470,8 @@ int QuoServer::WriteVote(ArticlePool pool) {
             num_votes++;
         }
     }
-    auto max1 = std::max_element(WriteQuorumList.begin(), WriteQuorumList.end(), choose_first);
+    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+    max1 = std::max_element(WriteQuorumList.begin(), WriteQuorumList.end(), choose_first);
     //At this point voting is done
     //search the write quorum for version given by serv_index, get the server target ip corresponding to it
     string target_serv_ip = max1->second.first;
@@ -479,7 +480,7 @@ int QuoServer::WriteVote(ArticlePool pool) {
     cout << "INFO: Read vote with latest version" << max1->first << " concluded" << endl;
     string request = "POOL;";
     crit.lock();
-    string pool_content = udp_get_updated_pool(target_serv_ip.c_str(), serv_port, request.c_str(), MAXPOOLLENGTH);
+    char *pool_content = udp_get_updated_pool(target_serv_ip.c_str(), serv_port, request.c_str(), MAXPOOLLENGTH);
     crit.unlock();
     string sync_req = "SYNCHRONIZE;";
     sync_req.append(pool_content);

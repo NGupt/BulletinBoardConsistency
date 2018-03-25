@@ -33,15 +33,15 @@ public :
     ArticlePool articlePool;
     thread insert_listen_thread;
     int insert_listen_fd;
-    vector<pair<int,pair<string,int> > > ReadQuorumList;
-    vector<pair<int,pair<string,int> > > WriteQuorumList;
+    vector<pair<int,pair<string,int>> > ReadQuorumList;
+    vector<pair<int,pair<string,int>> > WriteQuorumList;
 
     //first delimited part is READ/WRITE
     int udp_ask_vote(const char* ip, int port, const char* buf, int buf_size);
     //first delimited part is FWD_REQ
     int udp_fwd_req(const char* target_serv_ip, int serv_port, const char* client_ip, int client_port, const char* buf, int buf_size);
     //first delimited part is POOL
-    string udp_get_updated_pool(const char *ip, int port, const char *pool_content, const int buf_size);
+    char *udp_get_updated_pool(const char *ip, int port, const char *pool_content, const int buf_size);
     //first delimited part is SYNCHRONIZE
     int udp_synchronize(const char *ip, int port, const char *buf, int buf_size);
     //decodes the first delimited part and then rest of the decoding and response back
@@ -59,7 +59,7 @@ private:
     std::mutex update;
     std::vector<ArticlePool> updates;
     std::thread t_update;
-
+    char *pool_content;
     bool isCoordinator(string ip);
     /* Create lock if it doesn't exist, then try to lock.
      * Returns status*/
