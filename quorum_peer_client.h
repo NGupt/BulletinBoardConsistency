@@ -38,6 +38,7 @@ public :
     int synchronizer(ArticlePool art);
    // map<int, Article*> art_tree;
     vector<pair<int,string>> ReadQuorumList;
+    vector<pair<int,string>> WriteQuorumList;
 
     int udp_ask_vote(const char* ip, int port, const char* buf, int buf_size);
     static void udp_recv_vote_req(QuoServer *s,string r_ip, int port);
@@ -48,8 +49,11 @@ private:
 
     std::mutex subscriber_lock;
     std::mutex crit ;
-    std::unordered_map<int, std::shared_ptr<std::mutex> > readlock;
-    std::unordered_map<int, std::shared_ptr<std::mutex> > writelock;
+//    std::unordered_map<int, std::shared_ptr<std::mutex> > readlock;
+    std::shared_ptr<std::mutex> readlock;
+    std::shared_ptr<std::mutex> writelock;
+
+    //std::unordered_map<int, std::shared_ptr<std::mutex> > writelock;
 
   //  std::thread insert_listen_fd;
     std::vector<QuoServer *> subscribers;
@@ -70,7 +74,7 @@ private:
     /*Some infite loop for updates*/
     int Loop();
 
-    int clearReadVote(QuoServer *q, int id);
-    int getReadVote(QuoServer *q, int id);
+    int clearReadVote(QuoServer *q);
+    int getReadVote(QuoServer *q);
 
 };
