@@ -2,7 +2,6 @@
 
 #include "article.h"
 #include "peer.h"
-//#include "quorum.h"
 #include "communicate.h"
 #include <vector>
 #include <unordered_map>
@@ -10,7 +9,7 @@
 #include <memory>
 #include <thread>
 
-class QuoServer{
+class QuoServer {
 
 public :
     string coordinator_ip;
@@ -23,7 +22,7 @@ public :
     ~QuoServer();
     int join_server(IP ip, int port);
     server_list get_server_list();
-    vector<pair<string, int>> serverList;
+    vector<pair<string, int> > serverList;
 
     void decode_articles(char *temp_articles);
     int queue_up(int art_id, string content);
@@ -34,27 +33,27 @@ public :
     ArticlePool articlePool;
     thread insert_listen_thread;
     int insert_listen_fd;
-  //bool isCoordinator(string server_ip);
-    int synchronizer(ArticlePool art);
-   // map<int, Article*> art_tree;
-    vector<pair<int,string>> ReadQuorumList;
-    vector<pair<int,string>> WriteQuorumList;
+    vector<pair<int,pair<string,int> > > ReadQuorumList;
+    vector<pair<int,pair<string,int> > > WriteQuorumList;
 
+    //first delimited part is READ/WRITE
     int udp_ask_vote(const char* ip, int port, const char* buf, int buf_size);
-    static void udp_recv_vote_req(QuoServer *s,string r_ip, int port);
+    //first delimited part is FWD_REQ
     int udp_fwd_req(const char* target_serv_ip, int serv_port, const char* client_ip, int client_port, const char* buf, int buf_size);
+    //first delimited part is POOL
+    string udp_get_updated_pool(const char *ip, int port, const char *pool_content, const int buf_size);
+    //first delimited part is SYNCHRONIZE
+    int udp_synchronize(const char *ip, int port, const char *buf, int buf_size);
+    //decodes the first delimited part and then rest of the decoding and response back
+    static void udp_recv_vote_req(QuoServer *s,string r_ip, int port);
 
 private:
     CLIENT *pclnt; //coordinator
 
     std::mutex subscriber_lock;
-    std::mutex crit ;
-//    std::unordered_map<int, std::shared_ptr<std::mutex> > readlock;
+    std::mutex crit;
     std::shared_ptr<std::mutex> readlock;
     std::shared_ptr<std::mutex> writelock;
-
-    //std::unordered_map<int, std::shared_ptr<std::mutex> > writelock;
-
   //  std::thread insert_listen_fd;
     std::vector<QuoServer *> subscribers;
     std::mutex update;
@@ -70,9 +69,6 @@ private:
     /* Return true if respective read/write lock is set */
     bool isReader(QuoServer *q);
     bool isWriter(QuoServer *q);
-
-    /*Some infite loop for updates*/
-    int Loop();
 
     int clearReadVote(QuoServer *q);
     int getReadVote(QuoServer *q);
