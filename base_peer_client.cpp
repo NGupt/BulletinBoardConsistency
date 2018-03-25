@@ -141,6 +141,48 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     return -1;
 }
 
+
+void PeerClient::decode_articles(char *temp_articles){
+    int line_pos = 0;
+    int content_pos = 0;
+    int parent_id = 0;
+    int num_lines = 0;
+    int index = 1;
+    bool reply_flag = false;
+    std::string line_delimiter = "\n";
+    std::string content_delimiter = " ";
+    std::string reply_delimiter = "\t";
+    std::string content = "";
+    std::string line = "";
+
+    string articles(temp_articles, strlen(temp_articles));
+
+    while(articles != "") {
+        line_pos = articles.find(line_delimiter);
+
+        line = articles.substr(0, line_pos);   //returning line
+        articles = articles.substr(line_pos + 1);  //returning rest of levels
+
+        reply_flag = false;
+        content_pos = line.find(reply_delimiter);
+        while((content_pos = line.find(reply_delimiter)) == 0) {
+            line = line.substr(content_pos + 1);  //returning reply line without tab
+            reply_flag = true;
+        }
+        content_pos = line.find(content_delimiter);
+        content = line.substr(content_pos + 1);
+        index = atoi(line.substr(0, content_pos).c_str());
+        //cout << index << " " << content << " " << parent_id << endl;
+        if(reply_flag)
+            articlePool.writeArticle(content, parent_id, index);
+        else
+            articlePool.writeArticle(content, 0, index );
+
+        parent_id = atoi(line.substr(0,content_pos).c_str());
+        num_lines++;
+    }
+}
+
 void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
     struct sockaddr_in remote_addr, self_addr;
     const char *remote_ip = r_ip.c_str();
@@ -196,48 +238,112 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
     }
 }
 
-void PeerClient::decode_articles(char *temp_articles){
-    int line_pos = 0;
-    int content_pos = 0;
-    int parent_id = 0;
-    int num_lines = 0;
-    int index = 1;
-    bool reply_flag = false;
-    std::string line_delimiter = "\n";
-    std::string content_delimiter = " ";
-    std::string reply_delimiter = "\t";
-    std::string content = "";
-    std::string line = "";
+//only for server...........
+void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
+    struct sockaddr_in remote_addr;
+    const char *remote_ip = r_ip.c_str();
+    socklen_t slen = sizeof(remote_addr);
 
-    string articles(temp_articles, strlen(temp_articles));
+    memset((char *) &remote_addr, 0, sizeof(remote_addr));
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_port = htons(port);
+    if (inet_aton(remote_ip, &remote_addr.sin_addr) == 0) {
+        perror("inet_aton failed");
+    }
 
-    while(articles != "") {
-        line_pos = articles.find(line_delimiter);
+    char vote_req[MAXPOOLLENGTH];
+    // Clear the buffer by filling null, it might have previously received data
+    memset(vote_req, '\0', MAXPOOLLENGTH);
 
-        line = articles.substr(0, line_pos);   //returning line
-        articles = articles.substr(line_pos + 1);  //returning rest of levels
-
-        reply_flag = false;
-        content_pos = line.find(reply_delimiter);
-        while((content_pos = line.find(reply_delimiter)) == 0) {
-            line = line.substr(content_pos + 1);  //returning reply line without tab
-            reply_flag = true;
+    // Try to receive some data; This is a blocking call
+    while (1) {
+        if ((recvfrom(s->insert_listen_fd, vote_req, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen)) < 0) {
+            perror("recvfrom()");
+            exit(1);
         }
-        content_pos = line.find(content_delimiter);
-        content = line.substr(content_pos + 1);
-        index = atoi(line.substr(0, content_pos).c_str());
-        //cout << index << " " << content << " " << parent_id << endl;
-        if(reply_flag)
-            articlePool.writeArticle(content, parent_id, index);
-        else
-            articlePool.writeArticle(content, 0, index );
 
-        parent_id = atoi(line.substr(0,content_pos).c_str());
-        num_lines++;
+        int pos = 0;
+        std::string delimiter = ";";
+        std::string first_command = "";
+
+        string req(vote_req, strlen(vote_req));
+        pos = req.find(delimiter);
+        first_command = req.substr(0, pos);   //returning line
+        req = req.substr(pos+1);
+        if((strcmp(first_command.c_str(),"READ") == 0)||(strcmp(first_command.c_str(),"WRITE") == 0)) {
+            if (s->readlock->try_lock()) {
+                printf("INFO: Read-locking %d\n", s->articlePool.count);
+                strcat(vote_req, to_string(s->articlePool.count).c_str());
+                //resend the received data to check if server is up
+                cout << "sending received req along with version number " << vote_req << endl;
+
+                if ((sendto(s->insert_listen_fd, vote_req, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+                    -1) {
+                    close(s->insert_listen_fd);
+                    s->insert_listen_fd = -1;
+                    perror("Error: acknowledging the received string");
+                    throw;
+                }
+            }
+            s->readlock->unlock(); //clear the lock
+        } else if (strcmp(first_command.c_str(),"FWD_REQ") == 0) {
+            pos = req.find(delimiter);
+            string client_ip = req.substr(0, pos);   //returning line
+            req = req.substr(pos+1);
+            pos = req.find(delimiter);
+            int client_port = atoi(req.substr(0, pos).c_str());   //returning line
+            string pool_content = req.substr(pos+1);
+            //TODO: create client socket and send to that
+            int client_sock = -1;
+            if (s->readlock->try_lock()) {
+                //resend the received data to check if server is up
+                cout << "sending received pool content to client " << client_ip << ":" << client_port << endl;
+                if ((sendto(client_sock, pool_content.c_str(), MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+                    -1) {
+                    close(client_sock);
+                    perror("Error: acknowledging the received string");
+                    throw;
+                }
+            }
+            s->readlock->unlock(); //clear the lock
+            close(client_sock);
+        } else if (strcmp(first_command.c_str(),"POOL") == 0){
+            if (s->readlock->try_lock()) {
+                string pool_content = s->articlePool.read();
+                cout << "returning latest pool content to coordinator " << pool_content << endl;
+                if ((sendto(s->insert_listen_fd, pool_content.c_str(), MAXPOOLLENGTH, 0,
+                            (struct sockaddr *) &remote_addr, slen)) ==
+                    -1) {
+                    close(s->insert_listen_fd);
+                    s->insert_listen_fd = -1;
+                    perror("Error: acknowledging the received string");
+                    throw;
+                }
+            }
+            s->readlock->unlock(); //clear the lock
+        } else if (strcmp(first_command.c_str(),"SYNCHRONIZE") == 0){
+            if (s->writelock->try_lock()) {
+                string content = req.substr(pos+1);
+                s->articlePool.releaseAll();
+                char *pool_content = new char[content.length() + 1];
+                std::strcpy(pool_content, content.c_str());
+                s->decode_articles(pool_content); //will decode and save the pool content to pool of server
+            }
+            s->writelock->unlock(); //clear the lock
+            //confirming back to coordinator that synchronization on this server happened
+            if ((sendto(s->insert_listen_fd, vote_req, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+                -1) {
+                close(s->insert_listen_fd);
+                s->insert_listen_fd = -1;
+                perror("Error: acknowledging the received string");
+                throw;
+            }
+        }
     }
 }
 
 PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port) {
+    bool Quorum = true;
     this->server_ip = ip;
     this->server_port = port;
     this->coordinator_ip = coordinator_ip;
@@ -252,15 +358,27 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         clnt_pcreateerror(c_ip);
         exit(1);
     }
-    if (isCoordinator(o_ip)) {
-        cout << "is coordinator" << endl;
-        num_confirmations = 0;
+    if(!Quorum) {
+        if (isCoordinator(o_ip)) {
+            cout << "is coordinator" << endl;
+            num_confirmations = 0;
+        } else {
+            cout << "is not coordinator, joining server to " << c_ip << endl;
+        }
+        join_server(o_ip, port);
+        get_server_list();
     } else {
-        cout << "is not coordinator, joining server to " << c_ip << endl;
+        if (isCoordinator(o_ip)) {
+            cout << "INFO: Coord starting" << endl;
+            subscriber_lock.lock();
+            subscribers.push_back(NULL);
+            subscriber_lock.unlock();
+        } else {
+            join_server(o_ip,
+                        port);  // Our coordinator is not part of client accessible server list in case of quorum consistency
+            get_server_list();
+        }
     }
-    join_server(o_ip, port);
-    get_server_list();
-
 
     sockaddr_in si_me;
     //printf("Begin listening to requests from the other servers...\n");
@@ -289,18 +407,34 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         perror("binding socket");
         throw;
     }
-    if(!isCoordinator(o_ip)) {
-        get_server_list();
-        //if server joined later, then get the latest article copy
-        if(articlePool.read() == ""){
-            char *temp_articles = *read_1(pclnt);
-            // cout << "empty article pool, output after update:\n" << temp_articles << endl;
-            decode_articles(temp_articles);
-            cout << "existing articles were\n" << articlePool.read() << endl;
+    if(!Quorum) {
+        if (!isCoordinator(o_ip)) {
+            get_server_list();
+            //if server joined later, then get the latest article copy
+            if (articlePool.read() == "") {
+                char *temp_articles = *read_1(pclnt);
+                // cout << "empty article pool, output after update:\n" << temp_articles << endl;
+                decode_articles(temp_articles);
+                cout << "existing articles were\n" << articlePool.read() << endl;
+            }
+            //create listening udp thread
+            insert_listen_thread = thread(listen_from, this, c_ip, server_port);
+            insert_listen_thread.detach();
         }
-        //create listening udp thread
-        insert_listen_thread = thread(listen_from, this, c_ip, server_port);
-        insert_listen_thread.detach();
+    } else {
+        if (!isCoordinator(o_ip)) {
+            get_server_list();
+            //if server joined later, then get the latest article copy
+            if (articlePool.read() == "") {
+                char *temp_articles = *read_1(pclnt);
+                // cout << "empty article pool, output after update:\n" << temp_articles << endl;
+                decode_articles(temp_articles);
+                cout << "existing articles were\n" << articlePool.read() << endl;
+            }
+            //create listening udp thread
+            insert_listen_thread = thread(udp_recv_vote_req, this, c_ip, server_port);
+            insert_listen_thread.detach();
+        }
     }
     cout << "Initialization complete" << endl;
 
