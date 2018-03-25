@@ -84,7 +84,7 @@ QuoServer::QuoServer(string ip, int port, string coordinator_ip, int coordinator
             cout << "existing articles were\n" << articlePool.read() << endl;
         }
         //create listening udp thread
-        insert_listen_thread = thread(listen_from, this, c_ip, server_port);
+        insert_listen_thread = thread(udp_recv_vote_req, this, c_ip, server_port);
         insert_listen_thread.detach();
     }
     cout << "Initialization complete" << endl;
@@ -202,8 +202,8 @@ int QuoServer::udp_fwd_req(const char *serv_ip, int serv_port, const char *clien
     return 0;
 }
 
-void QuoServer::udp_receive_vote(QuoServer *s,string r_ip, int port){
-    struct sockaddr_in remote_addr, self_addr;
+void QuoServer::udp_recv_vote_req(QuoServer *s,string r_ip, int port){
+    struct sockaddr_in remote_addr;
     const char *remote_ip = r_ip.c_str();
     int bytes = 0;
     socklen_t slen = sizeof(remote_addr);
@@ -267,6 +267,7 @@ bool choose_first(const std::pair<int, string> &lhs,
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
 //TODO:Has to be integrated with ArticlePool structure
+//TODO: ReadVote only to be called by coordinator
 int QuoServer::ReadVote(ArticlePool pool) {
 // initializing the vote to read article
     vector<int> versions;
@@ -282,38 +283,33 @@ int QuoServer::ReadVote(ArticlePool pool) {
     int serv_version = 0;
 
     auto it = ReadQuorumList.begin();
-    //Should be number of active clients
-    int start_size = serverList.size() ;
+    int start_size = serverList.size();
     int num_votes = 0;
 
     //int id = art_tree[i]->first;
     //int id = articlePool.count; //number of articles in pool
     //randomly select some servers
-    while(num_votes <= start_size/2) {
+    while (num_votes <= start_size / 2) {
         if (it == ReadQuorumList.end()) {
             it = ReadQuorumList.begin();
         }
         //We need ask our own vote as well !?
-  char vote_for[4 + sizeof(int)];
-  strcpy(vote_for, "Read");
-  memmove(vote_for + 4, &pool, sizeof(pool));
+        char vote_for[4 + sizeof(int)];
+        strcpy(vote_for, "Read");
+        memmove(vote_for + 4, &pool, sizeof(pool));
         //if ((*it) != NULL) {
-            //If not an active connection
 //            if () //TODO: How to check in udp whether a server is active or not
 //            {
 //                it = voters.erase(it);
 //            }
-            if ((serv_version = udp_ask_vote(serverList[num_votes].first.c_str(), serverList[num_votes].second,
-                                             vote_for, sizeof(vote_for))) < 0)
-                // TODO:We send the request to server
-            {
-                cout << "Could not ask for vote" << endl;
-            } else {
-                ReadQuorumList.push_back(make_pair(serv_version, serverList[num_votes].first));
-                versions.push_back(serv_version);
-                num_votes++;
-            }
+        if ((serv_version = udp_ask_vote(serverList[num_votes].first.c_str(), serverList[num_votes].second, vote_for, sizeof(vote_for))) < 0) {
+            cout << "Could not ask for vote" << endl;
+        } else {
+            ReadQuorumList.push_back(make_pair(serv_version, serverList[num_votes].first));
+            versions.push_back(serv_version);
+            num_votes++;
         }
+    }
 
         //TODO: get these values
     int serv_port, client_port, buf_size;
@@ -321,54 +317,60 @@ int QuoServer::ReadVote(ArticlePool pool) {
     const char *buffer;
     auto max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
     std::cout << "max1: " << max1->second;
-    if(self_version <= max1->first) {
-        //TODO search the read quorum for version given by serv_index, get the server target ip corresponding to it
-        string target_serv_ip = max1->second;
-        udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, buffer, buf_size);
+    //TODO search the read quorum for version given by serv_index, get the server target ip corresponding to it
+    string target_serv_ip = max1->second;
+    udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, buffer, buf_size);
+
+    for (int i=0; i< subscribers.size();i++) {
+        clearReadVote(subscribers[i],i); //Clearing all votes
     }
-    else{
-        self_version = max1->first;
+    return 0;
 }
 
-
+int QuoServer::WriteVote(ArticlePool pool) {
+    //TODO: get these values
+    int serv_port, client_port, buf_size;
+    const char *client_ip;
+    const char *buffer;
+    auto max1 = std::max_element(ReadQuorumList.begin(), ReadQuorumList.end(), choose_first);
+    std::cout << "max1: " << max1->second;
+    //TODO search the read quorum for version given by serv_index, get the server target ip corresponding to it
+    string target_serv_ip = max1->second;
+    udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, buffer, buf_size);
 
     //At this point voting is done
     /* Vote done. ToDo: Push current version to all subscribers */
-//    cout << "INFO: Read vote " << id << " concluded" << endl;
-//    crit.lock();
-//    ArticlePool pool_current_version = art_tree[id]; //TODO: Sending updated article
-//    crit.unlock();
-//    synchronizer(pool_current_version);
-//    clearReadVote(id); //Clearing all votes
-
-    return 0;
-
-}
-int QuoServer::getReadVote(int id)
-{
-    printf("INFO: Read vote %d requested\n", id);
-    int vote = !isWriter(id);
-    if (vote) {
-        cout << "INFO:" << server_ip << "voted for READ " << id << endl;
+    cout << "INFO: Read vote with latest version" << max1->first << " concluded" << endl;
+    crit.lock();
+    //TODO: get the latest pool and write to all servers
+    ArticlePool pool_current_version = articlePool; //TODO: Sending updated article
+    crit.unlock();
+    synchronizer(pool_current_version);
+    for (int i=0; i< subscribers.size();i++) {
+        clearReadVote(subscribers[i], i); //Clearing all votes
     }
-    else {
-        cout << "INFO:" << server_ip << "voted against READ " << id << endl;
+}
+
+int QuoServer::getReadVote(QuoServer *q, int id) {
+    printf("INFO: Read vote %d requested\n", q->articlePool.count);
+    int vote = !isWriter(q);
+    if (vote) {
+        cout << "INFO:" << server_ip << "voted for READ " << q->articlePool.count << endl;
+    } else {
+        cout << "INFO:" << server_ip << "voted against READ " << q->articlePool.count << endl;
         return 0;
     }
 
-    if (readlock[id]->try_lock()) {
-        printf("INFO: Read-locking %d\n", id);
-    }
-
+    if (readlock[id]->try_lock())
+        printf("INFO: Read-locking %d\n", q->articlePool.count);
     printf("INFO: Read vote sent\n");
     return vote;
 }
 
-int QuoServer::clearReadVote(int id)
+int QuoServer::clearReadVote(QuoServer *q, int id)
 {
-    printf("INFO: Clearing READ %d\n", id);
-    if (isReader(id))
-    {
+    printf("INFO: Clearing READ %d\n", q->articlePool.count);
+    if (isReader(q)) {
         readlock[id]->unlock();
     }
 
