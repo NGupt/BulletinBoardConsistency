@@ -114,7 +114,7 @@ int PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port, co
     remoteAddr.ai_protocol = 0;
     remoteAddr.ai_flags = AI_ADDRCONFIG;
 
-    //cout << "buf: " << buf <<endl;
+    cout << "sending pool: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         freeaddrinfo(res);
@@ -250,9 +250,10 @@ int PeerClient::readVote(PeerClient *q, string req_type) {
     fwd_req.append(";");
     fwd_req.append(client_ip);
     fwd_req.append(";");
-    fwd_req = std::to_string(client_port);
+    fwd_req.append(to_string(client_port));
     fwd_req.append(";");
     fwd_req.append(req_type);
+    cout << "fwd req is: " << fwd_req << endl;
     udp_fwd_req(target_serv_ip.c_str(), serv_port, fwd_req.c_str(), fwd_req.length());
     return 0;
 }
@@ -306,11 +307,14 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
 //udp to write
     string update_req = "UPDATE;";
     update_req.append(write_content);
+    update_req.append(";");
     udp_synchronize(this, target_serv_ip.c_str(), serv_port, update_req.c_str(), update_req.length());
     string request = "POOL;";
     udp_get_updated_pool(this, target_serv_ip.c_str(), serv_port, request.c_str(), request.length()); //TODO: check for null on server side
+    cout << "pool is " << pool_content << endl;
     string sync_req = "SYNCHRONIZE;";
     sync_req.append(pool_content);
+    sync_req.append(";");
     //write the same content to rest of the servers
     for(int i=0; i< writeQuorumList.size(); i++) {
         udp_synchronize(this, writeQuorumList[i].second.first.c_str(), writeQuorumList[i].second.second, sync_req.c_str(), sync_req.length());
@@ -320,8 +324,7 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
 
 int PeerClient::post(char *content) {
     int output = -1;
-    string req_type = "POST;";
-    req_type.append(";");
+    string req_type = "";
     req_type.append(to_string(0).c_str()); //parent would be 0 if post
     req_type.append(";");
     req_type.append(content);
@@ -343,8 +346,7 @@ int PeerClient::post(char *content) {
 
 int PeerClient::reply(char *content, int index) {
     int output = -1;
-    string req_type = "REPLY;";
-    req_type.append(";");
+    string req_type = "";
     req_type.append(to_string(index));
     req_type.append(";");
     req_type.append(content);
@@ -369,7 +371,6 @@ string PeerClient::read() {
     if (isCoordinator(server_ip)) {
         //PeerClient *static_read_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
         string req_type = "READ;";
-        req_type.append(";");
         std::thread update_thread(&PeerClient::readVote, this, this, req_type);
         if(update_thread.joinable()){
             update_thread.join();

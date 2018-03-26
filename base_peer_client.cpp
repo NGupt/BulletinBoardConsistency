@@ -341,6 +341,7 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
         } else if (strcmp(first_command.c_str(),"POOL") == 0){
             if (s->readlock.try_lock()) {
                 string return_content = s->articlePool.read();
+                return_content.append(";");
                 cout << "returning latest pool content to coordinator " << return_content << endl;
                 if ((sendto(s->insert_listen_fd, return_content.c_str(), return_content.length(), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                     close(s->insert_listen_fd);
@@ -352,6 +353,8 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             s->readlock.unlock(); //clear the lock
         } else if (strcmp(first_command.c_str(),"SYNCHRONIZE") == 0){
             req = req.substr(pos+1); //return_content
+            pos = req.find(delimiter);
+            req = req.substr(0,pos);
             if (s->writelock.try_lock()) {
                 char *return_content = new char[req.length() + 1];
                 std::strcpy(return_content, req.c_str());
@@ -361,7 +364,9 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             }
             s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
-            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
+//            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
+        cout << "pool read: " << s->articlePool.read() << endl;
+            if ((sendto(s->insert_listen_fd, s->articlePool.read().c_str(), s->articlePool.read().length(), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                 close(s->insert_listen_fd);
                 s->insert_listen_fd = -1;
                 perror("Error: acknowledging the received string");
@@ -372,7 +377,9 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             pos = req.find(delimiter);
             int reply_index = 0;
             reply_index = atoi(req.substr(0, pos).c_str());
-            string write_content  = req.substr(pos+1).c_str();
+            req = req.substr(pos+1); //index;write_content
+            pos = req.find(delimiter);
+            string write_content  = req.substr(0, pos).c_str();
             if (s->writelock.try_lock()) {
                 cout << "content: " << write_content << endl;
                 s->articlePool.storeArticle(write_content, reply_index);

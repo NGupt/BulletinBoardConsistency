@@ -33,10 +33,10 @@ public:
 
     void get_server_list();
 
-    static void listen_for_article(char *own_ip, int port, int sock);
+    static void listen_for_article(char *own_ip, int port, int *socket_fd);
 
     Client(char *ip, char *serv_ip, int port) {
-        strcpy(self_ip, ip);
+        self_ip = ip;
         self_port = port;
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
         if (clnt == NULL) {
@@ -61,7 +61,7 @@ public:
             close(sock);
             perror("binding socket");
         }
-        udp_thread = std::thread(listen_for_article, serv_ip, port, sock);
+        udp_thread = std::thread(listen_for_article, serv_ip, port, &sock);
         std::cout << ".....before detach.....\n";
         udp_thread.detach();
 //        if(udp_thread.joinable()){
@@ -79,7 +79,7 @@ public:
     }
 };
 
-void Client::listen_for_article(char *serv_ip, int port, int sock) {
+void Client::listen_for_article(char *serv_ip, int port, int *socket_fd) {
     struct sockaddr_in remote_addr;
     socklen_t slen = sizeof(remote_addr);
 
@@ -90,7 +90,7 @@ void Client::listen_for_article(char *serv_ip, int port, int sock) {
         perror("inet_aton failed");
         exit(1);
     }
-    free(serv_ip);
+//    free(serv_ip);
 
     char article[MAXPOOLLENGTH];
     // Clear the buffer by filling null, it might have previously received data
@@ -98,7 +98,7 @@ void Client::listen_for_article(char *serv_ip, int port, int sock) {
 
     while(1) {
         // Try to receive some data; This is a blocking call
-        if (recvfrom(sock, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
+        if (recvfrom(*socket_fd, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
             perror("recvfrom()");
             exit(1);
         }
