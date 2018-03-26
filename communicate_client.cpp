@@ -18,20 +18,20 @@ class Client;
 class Client {
 
 public:
-    CLIENT * clnt;
+    CLIENT *clnt;
     std::thread udp_thread;
     int sock = -1;
     char *self_ip;
     int self_port;
     char *target_ip;
- 
-    void post(char * content);
+
+    void post(char *content);
 
     void read();
 
     void choose(int index);
 
-    void reply(char * content, int index);
+    void reply(char *content, int index);
 
     void get_server_list();
 
@@ -55,10 +55,10 @@ public:
         setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
         memset(&client_addr, 0, sizeof(client_addr));
         client_addr.sin_family = AF_INET;
-        client_addr.sin_addr.s_addr= htonl(INADDR_ANY);
+        client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
         client_addr.sin_port = htons(self_port);
 
-        if (bind(sock, (struct sockaddr*)&client_addr, sizeof(client_addr)) == -1)     {
+        if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) == -1) {
             close(sock);
             perror("binding socket");
         }
@@ -68,7 +68,7 @@ public:
     }
 
     ~Client() {
-        if(udp_thread.joinable()){
+        if (udp_thread.joinable()) {
             udp_thread.join();
         }
         if (clnt)
@@ -92,7 +92,7 @@ void Client::listen_for_article(char *serv_ip, int port, int socket_fd) {
     // Clear the buffer by filling null, it might have previously received data
     memset(article, '\0', MAXPOOLLENGTH);
 
-    while(1) {
+    while (1) {
         // Try to receive some data; This is a blocking call
         if (recvfrom(socket_fd, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
             perror("recvfrom()");
@@ -102,11 +102,11 @@ void Client::listen_for_article(char *serv_ip, int port, int socket_fd) {
     }
 }
 
-void Client::post(char * content) {
+void Client::post(char *content) {
     auto output = post_1(content, self_ip, self_port, clnt);
     if (*output == 0) {
         clnt_perror(clnt, "Cannot post");
-    } else if (*output == -1){
+    } else if (*output == -1) {
         std::cout << "\nCould not post at index" << std::endl;
     } else {
         std::cout << "\nPosted article successfully" << std::endl;
@@ -139,11 +139,11 @@ void Client::choose(int index) {
     }
 }
 
-void Client::reply(char * content, int index) {
+void Client::reply(char *content, int index) {
     auto output = reply_1(content, index, self_ip, self_port, clnt);
     if (*output == 0) {
         clnt_perror(clnt, "Cannot reply");
-    } else if (*output == -1){
+    } else if (*output == -1) {
         cout << "\nArticle with index " << index << " does not exist. Please retry.\n" << endl;
     } else {
         std::cout << "\nReplied to article " << index << "successfully with " << content << std::endl;
@@ -153,7 +153,7 @@ void Client::reply(char * content, int index) {
 void Client::get_server_list() {
     auto output = get_server_list_1(clnt);
     if (output == (server_list *) NULL) {
-        clnt_perror (clnt, "call failed");
+        clnt_perror(clnt, "call failed");
     } else {
         std::cout << "\nserver_list is :" << endl;
         for (int i = 0; i < output->server_list_len; i++) {
@@ -185,14 +185,14 @@ int main(int argc, char *argv[]) {
         try {
             func_number = stoi(func);
         }
-        catch(std::exception& e) {
+        catch (std::exception &e) {
             cout << "ERROR:  Please limit operation values from 1-5 " << endl;
             continue;
         }
         char *article = new char[MAXSTRING];
         int articleId = 0;
         string articleIdStr;
-        bool articleIdCorrect =false;
+        bool articleIdCorrect = false;
         switch (func_number) {
             case 1:
                 std::cout << "Please enter the article content:\n";
@@ -211,7 +211,7 @@ int main(int argc, char *argv[]) {
                     try {
                         articleId = stoi(articleIdStr);
                         articleIdCorrect = true;
-                    } catch (std::exception& e) {
+                    } catch (std::exception &e) {
                         std::cout << "ERROR:  Please input integer for article id" << std::endl;
                     }
                 }
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
                     try {
                         articleId = stoi(articleIdStr);
                         articleIdCorrect = true;
-                    } catch (std::exception& e) {
+                    } catch (std::exception &e) {
                         std::cout << "ERROR:  Please input integer for article id" << std::endl;
                     }
                 }

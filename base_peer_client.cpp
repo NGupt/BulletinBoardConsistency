@@ -61,7 +61,6 @@ int PeerClient::updateAllServers(PeerClient *p, ArticlePool articlePool, int rep
     }
     send_content.append(";");
     send_content.append(temp->content);
-    //cout << "content all: " << send_content << endl;
     for (int i=0; i<(p->serverList.size()); i++) {
         if(p->isCoordinator(p->serverList[i].first.c_str())) {
             result = 0;
@@ -73,9 +72,7 @@ int PeerClient::updateAllServers(PeerClient *p, ArticlePool articlePool, int rep
             cout << "Update to backup failed" << endl;
             return -1;
         }
-        // send confirmation to client
     }
-    //while(p->num_confirmations < (p->serverList.size() - 1));
     return result;
 }
 
@@ -90,7 +87,6 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
     remoteAddr.ai_protocol = 0;
     remoteAddr.ai_flags = AI_ADDRCONFIG;
 
-    //cout << "buf: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         freeaddrinfo(res);
@@ -110,8 +106,8 @@ int PeerClient::udp_send_confirm(const char *ip, int port, const char *buf, cons
         close(fd);
         return -1;
     }
-     struct timeval tv;
-      tv.tv_sec = 3;
+    struct timeval tv;
+    tv.tv_sec = 3;
     tv.tv_usec = 0;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0) {
         perror("Error");
@@ -172,7 +168,6 @@ void PeerClient::decode_articles(char *temp_articles){
         content_pos = line.find(content_delimiter);
         content = line.substr(content_pos + 1);
         index = atoi(line.substr(0, content_pos).c_str());
-        //cout << index << " " << content << " " << parent_id << endl;
         if(reply_flag)
             articlePool.writeArticle(content, parent_id, index);
         else
@@ -184,9 +179,8 @@ void PeerClient::decode_articles(char *temp_articles){
 }
 
 void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
-    struct sockaddr_in remote_addr, self_addr;
+    struct sockaddr_in remote_addr;
     const char *remote_ip = r_ip.c_str();
-    int bytes = 0;
     socklen_t slen = sizeof(remote_addr);
 
     memset((char *) &remote_addr, 0, sizeof(remote_addr));
@@ -210,7 +204,6 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             perror("recvfrom()");
             exit(1);
         }
-        // cout << "listened "  << " " << article_update << endl;
         std::string delimiter = ";";
         string article(article_update, strlen(article_update));
         pos = article.find(delimiter);
@@ -223,7 +216,6 @@ void PeerClient::listen_from(PeerClient *s,string r_ip, int port){
             reply_index = atoi((remaining_content.substr(0, pos)).c_str());
         }
         string content = remaining_content.substr(pos+1);
-        //cout << "content " << content << " index " << index << endl;
         if(s->articlePool.choose(index) == NULL)
             s->articlePool.storeArticle(content,reply_index); //with index = 0 , it is same as post
 
@@ -271,11 +263,9 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
 
         pos = req.find(delimiter);
         first_command = req.substr(0, pos);
-//        cout << "first_command " << first_command <<endl;
 
         if((strcmp(first_command.c_str(),"READ") == 0)||(strcmp(first_command.c_str(),"WRITE") == 0)) {
             if (s->readlock.try_lock()) {
-//                printf("INFO: Read-locking %d\n", s->articlePool.count);
                 strcat(vote_req, to_string(s->articlePool.count).c_str());
                 //resend the received data to check if server is up
                 cout << "sending received req along with version number " << vote_req << endl;
@@ -307,7 +297,6 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
                 if (strcmp(req_type.c_str(), "READ") == 0) {
                     return_content = s->articlePool.read();
                 } else if (strcmp(req_type.c_str(), "CHOOSE") == 0) {
-//                    cout << "choose index is: " << choose_index << endl;
                     Article *resultArticle = s->articlePool.choose(choose_index);
                    if (resultArticle == NULL) {
                         return_content = "Article does not exist at this index\n";
@@ -350,7 +339,6 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             if (s->readlock.try_lock()) {
                 string return_content = s->articlePool.read();
                 return_content.append(";");
-//                cout << "returning latest pool content to coordinator " << return_content << endl;
                 if ((sendto(s->insert_listen_fd, return_content.c_str(), return_content.length(), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                     close(s->insert_listen_fd);
                     s->insert_listen_fd = -1;
@@ -366,14 +354,12 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             if (s->writelock.try_lock()) {
                 char *return_content = new char[req.length() + 1];
                 std::strcpy(return_content, req.c_str());
-                s->articlePool.releaseAll(); // TODO: check
+                s->articlePool.releaseAll();
                 s->decode_articles(return_content); //will decode and save the pool content to pool of server
                 free(return_content);
             }
             s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
-//            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
-//        cout << "pool read: " << s->articlePool.read() << endl;
             if ((sendto(s->insert_listen_fd, s->articlePool.read().c_str(), s->articlePool.read().length(), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                 close(s->insert_listen_fd);
                 s->insert_listen_fd = -1;
@@ -385,12 +371,10 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             pos = req.find(delimiter);
             int reply_index = 0;
             reply_index = atoi(req.substr(0, pos).c_str());
-//	    cout << "reply index is: " << reply_index << endl;
             req = req.substr(pos+1); //index;write_content
             pos = req.find(delimiter);
             string write_content  = req.substr(0, pos).c_str();
             if (s->writelock.try_lock()) {
-//                cout << "content: " << write_content << endl;
                 s->articlePool.storeArticle(write_content, reply_index);
 
             }
@@ -490,13 +474,6 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
     } else {
         if (!isCoordinator(o_ip)) {
             get_server_list();
-            //if server joined later, then get the latest article copy
-//            if (articlePool.read() == "") {
-//                char *temp_articles = *read_1(client_ip, client_port,pclnt);
-//                // cout << "empty article pool, output after update:\n" << temp_articles << endl;
-//                decode_articles(temp_articles);
-//                cout << "existing articles were\n" << articlePool.read() << endl;
-//            }
             //create listening udp thread
             insert_listen_thread = thread(udp_recv_vote_req, this, c_ip, server_port);
             insert_listen_thread.detach();

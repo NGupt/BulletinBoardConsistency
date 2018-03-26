@@ -9,7 +9,7 @@ int PeerClient::post(char *content) {
         output = articlePool.post(myString);
         updateAllServers(this, articlePool, 0);
     } else {
-        output = *post_1(content, client_ip, client_port,pclnt);
+        output = *post_1(content, client_ip, client_port, pclnt);
         if (output == 0) {
             clnt_perror(pclnt, "Cannot post");
         } else {
@@ -41,19 +41,19 @@ ArticleContent PeerClient::choose(int index) {
 }
 
 int PeerClient::reply(char *content, int index) {
-  int output = -1;
-  if (isCoordinator(server_ip)) {
-      std::string myString(content, strlen(content));
-      output = articlePool.reply(myString, index);
-      updateAllServers(this, articlePool, index);
-      return output;
-  } else {
-      output = *reply_1(content, index, client_ip, client_port,pclnt);
-      if (output == 0) {
-          clnt_perror(pclnt, "Cannot reply");
-      }
-  }
-  return output;
+    int output = -1;
+    if (isCoordinator(server_ip)) {
+        std::string myString(content, strlen(content));
+        output = articlePool.reply(myString, index);
+        updateAllServers(this, articlePool, index);
+        return output;
+    } else {
+        output = *reply_1(content, index, client_ip, client_port, pclnt);
+        if (output == 0) {
+            clnt_perror(pclnt, "Cannot reply");
+        }
+    }
+    return output;
 }
 
 server_list PeerClient::get_server_list() {

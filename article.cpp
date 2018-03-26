@@ -84,11 +84,10 @@ int ArticlePool::storeArticle(string article, int father) {
 }
 
 
-
 int ArticlePool::writeArticle(string article, int father, int index) {
     //cout << "in article " << index << " " << article << " " << father << " " << count << endl;
 
-    map<int, Article*>::iterator iter;
+    map<int, Article *>::iterator iter;
 
     iter = articleMap.find(father);
 
@@ -112,7 +111,6 @@ int ArticlePool::writeArticle(string article, int father, int index) {
         return -1;
     }
 }
-
 
 
 Article *ArticlePool::choose(int index) {
@@ -155,9 +153,9 @@ void ArticlePool::readArticleContent(string &articles, Article *now, int level) 
 
 string ArticlePool::read() {
     string articles = "";
-    std::map<int, Article*>::iterator it;
-    for (it=articleMap.begin(); it!=articleMap.end(); ++it){
-        if (isHeadArticle[it->first-1]) {
+    std::map<int, Article *>::iterator it;
+    for (it = articleMap.begin(); it != articleMap.end(); ++it) {
+        if (isHeadArticle[it->first - 1]) {
             Article *now = it->second;
             readArticleContent(articles, now, 0);
         }
@@ -176,98 +174,34 @@ void ArticlePool::getArticleContent(ArticleStruct *&article, Article *now, int l
     }
 }
 
-ArticlePoolStruct ArticlePool::getArticle() {
-    ArticlePoolStruct res;
-    res.count = count;
-    res.update_count = count;
-    if (count == 0) return res;
-    res.artciles.array_article_val = new ArticleStruct[count];
-    ArticleStruct *articleP = res.artciles.array_article_val;
-    for (int i = 1; i <= count; i++) {
-        if (isHeadArticle[i - 1]) {
-            Article *now = articleMap[i];
-            int pos = 0;
-            getArticleContent(articleP, now, 0);
-        }
-    }
-    return res;
-}
-
-void ArticlePool::PrintArticlePoolStruct(ArticlePoolStruct pool) {
-    cout << "Count: " << pool.count << "\nupdate_count: " << pool.update_count << endl;
-    if (pool.count == 0) return;
-    ArticleStruct *article = pool.artciles.array_article_val;
-    for (int i = 0; i < pool.count; i++) {
-        for (int j = 0; j < article->depth; j++) {
-            for (int k = 0; k < 4; k++) {
-                cout << " ";
-            }
-        }
-        cout << "printing " << article->index << " " << article->content << endl;
-        article++;
-    }
-}
-
-void encodeInt(char *&buffer, int x) {
-    *buffer = x & 0xff;
-    *(++buffer) = (x >> 8) & 0xff;
-    *(++buffer) = (x >> 16) & 0xff;
-    *(++buffer) = (x >> 24) & 0xff;
-    buffer++;
-}
-
-void encodeString(char *&buffer, string s, int len) {
-    strcpy(buffer, s.c_str());
-    buffer += len;
-}
-
-void ArticlePool::encodeArticle(char *&buffer, Article *article, int father) {
-    encodeInt(buffer, father);
-    encodeString(buffer, article->content, MAXSTRING);
-    for (int i = 0; i < article->nextArticles.size(); i++) {
-        encodeArticle(buffer, article->nextArticles[i], article->index);
-    }
-}
-
-int decodeInt(char *&buffer) {
-    int x = *buffer & 0xff;
-    x = x | ((*(++buffer) & 0xff) << 8);
-    x = x | ((*(++buffer) & 0xff) << 16);
-    x = x | ((*(++buffer) & 0xff) << 24);
-    buffer++;
-    return x;
-}
-
-string decodeString(char *&buffer, int len) {
-    string s(buffer, strlen(buffer));
-    buffer += len;
-    return s;
-}
-
-char *ArticlePool::encodeArticlePool() {
-    //store count(4)
-    //content(101) father(4)
-    char *res = new char[4 + (MAXSTRING + 4) * count];
-    char *r = res;
-    encodeInt(r, count);
-    for (int i = 1; i <= count; i++) {
-        if (isHeadArticle[i - 1]) {
-            encodeArticle(res, articleMap[i], 0);
-        }
-    }
-    return r;
-
-
-}
-
-
-void ArticlePool::decodeArticlePool(char *article) {
-    releaseAll();
-    int size = decodeInt(article);
-    for (int i = 0; i < size; i++) {
-        int father = decodeInt(article);
-        string s = decodeString(article, MAXSTRING);
-        storeArticle(s, father);
-    }
-}
-
+//ArticlePoolStruct ArticlePool::getArticle() {
+//    ArticlePoolStruct res;
+//    res.count = count;
+//    res.update_count = count;
+//    if (count == 0) return res;
+//    res.artciles.array_article_val = new ArticleStruct[count];
+//    ArticleStruct *articleP = res.artciles.array_article_val;
+//    for (int i = 1; i <= count; i++) {
+//        if (isHeadArticle[i - 1]) {
+//            Article *now = articleMap[i];
+//            int pos = 0;
+//            getArticleContent(articleP, now, 0);
+//        }
+//    }
+//    return res;
+//}
+//
+//void ArticlePool::PrintArticlePoolStruct(ArticlePoolStruct pool) {
+//    cout << "Count: " << pool.count << "\nupdate_count: " << pool.update_count << endl;
+//    if (pool.count == 0) return;
+//    ArticleStruct *article = pool.artciles.array_article_val;
+//    for (int i = 0; i < pool.count; i++) {
+//        for (int j = 0; j < article->depth; j++) {
+//            for (int k = 0; k < 4; k++) {
+//                cout << " ";
+//            }
+//        }
+//        cout << "printing " << article->index << " " << article->content << endl;
+//        article++;
+//    }
+//}

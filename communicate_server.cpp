@@ -21,7 +21,7 @@ post_1_svc(char *content, char *client_ip, int client_port, struct svc_req *rqst
 }
 
 char **
-read_1_svc( char *client_ip, int client_port, struct svc_req *rqstp) {
+read_1_svc(char *client_ip, int client_port, struct svc_req *rqstp) {
     static char *result = new char[MAXPOOLLENGTH];
     now->client_ip = client_ip;
     now->client_port = client_port;
@@ -72,7 +72,7 @@ join_server_1_svc(IP arg1, int arg2, struct svc_req *rqstp) {
 
     result = now->joinServer(ips, arg2);
     if (result == -1) {
-        cout << "Can't join "<< endl;
+        cout << "Can't join " << endl;
     }
     return &result;
 }
