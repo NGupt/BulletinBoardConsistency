@@ -297,14 +297,14 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
                 if (strcmp(req_type.c_str(), "READ") == 0) {
                     return_content = s->articlePool.read();
                 } else if (strcmp(req_type.c_str(), "CHOOSE") == 0) {
-                    Article *resultArticle = s->articlePool.choose(choose_index);
-                   if (resultArticle == NULL) {
+                   //Article *resultArticle = s->articlePool.choose(choose_index);
+                   if (s->articlePool.choose(choose_index) == NULL) {
                         return_content = "Article does not exist at this index\n";
                         cout << "The article with id " << choose_index << " doesn't exist in the server." << endl;
                     } else {
-                        return_content = resultArticle->content;
+                        return_content = s->articlePool.choose(choose_index)->content;
                     }
-                    free(resultArticle);
+//                    free(resultArticle);
                 }
             }
             s->readlock.unlock(); //clear the lock
@@ -376,7 +376,6 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             string write_content  = req.substr(0, pos).c_str();
             if (s->writelock.try_lock()) {
                 s->articlePool.storeArticle(write_content, reply_index);
-
             }
             s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
@@ -389,8 +388,6 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
         }
         // Clear the buffer by filling null, it might have previously received data
         memset(vote_req, '\0', MAXPOOLLENGTH);
-        req = "";
-
     }
 }
 
