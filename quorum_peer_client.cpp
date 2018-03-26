@@ -231,7 +231,10 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
 
 //    cout << "subscribers , print write quorum" << endl;
     int j = 0;
-    for (int i = q->serverList.size(); i <= ceil(q->serverList.size()/ 2); i--) {
+    int total_size = q->serverList.size()/2;
+    if(q->serverList.size()%2 == 1)
+	total_size ++;
+    for (int i = q->serverList.size(); i >= total_size; i--) {
 //        cout << "entering loop " << i << endl;
         writeQuorumList.push_back(make_pair(0, make_pair(q->serverList[i - 1].first,
                                                          q->serverList[i - 1].second)));
@@ -253,18 +256,21 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
         }
         writeQuorumList[num_votes].first = serv_version;
         num_votes++;
-//        cout << "write num_votes " << num_votes << endl;
+        cout << "write num_votes " << num_votes << endl;
     }
 
-    int selected_index = rand()% (writeQuorumList.size());
+    //can use any of the write servers to write as later synchronization will anyways happen for write quorum
+    //int selected_index = rand()% (writeQuorumList.size());
 
-//    std::vector<pair<int, pair<string, int>>>::iterator max1;
-//    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
-//    //At this point voting is done
-//    //search the write quorum for version given by serv_index, get the server target ip corresponding to it
-    string target_serv_ip = writeQuorumList[selected_index].second.first;// max1->second.first;
-    int serv_port = writeQuorumList[selected_index].second.second; //max1->second.second;
-    cout << "INFO: Write vote with latest version" << writeQuorumList[selected_index].first << " concluded " << target_serv_ip << ";" << serv_port
+    std::vector<pair<int, pair<string, int>>>::iterator max1;
+    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
+    //At this point voting is done
+    //search the write quorum for version given by serv_index, get the server target ip corresponding to it
+//    string target_serv_ip = writeQuorumList[selected_index].second.first;// max1->second.first;
+//    int serv_port = writeQuorumList[selected_index].second.second; //max1->second.second;
+    string target_serv_ip =  max1->second.first;
+    int serv_port = max1->second.second;
+    cout << "INFO: Write vote with latest version" << max1->first << " concluded " << target_serv_ip << ";" << serv_port
          << endl;
 
 //udp to write
@@ -331,7 +337,11 @@ string PeerClient::read() {
         readQuorumList.clear();
         subscriber_lock.unlock();
 
-        for (int i = 0; i < ceil(serverList.size()/ 2);) {
+        int total_size = serverList.size()/2;
+        if(serverList.size()%2 == 1)
+            total_size ++;
+
+        for (int i = 0; i < total_size;) {
             readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first, serverList[i].second)));
             cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
             i++;
@@ -386,7 +396,11 @@ ArticleContent PeerClient::choose(int index) {
         readQuorumList.clear();
         subscriber_lock.unlock();
 
-        for (int i = 0; i <= ceil(serverList.size()/ 2);) {
+        int total_size = serverList.size()/2;
+        if(serverList.size()%2 == 1)
+            total_size ++;
+
+        for (int i = 0; i < total_size;) {
             readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first, serverList[i].second)));
             cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
             i++;
