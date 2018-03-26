@@ -24,6 +24,7 @@ public:
     char *self_ip;
     int self_port;
     char *target_ip;
+    int isQuorum;
 
     void post(char *content);
 
@@ -118,11 +119,14 @@ void Client::read() {
     if (output == NULL) {
         clnt_perror(clnt, "Cannot read");
     } else {
-        target_ip = *output;
-        udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
-        std::cout << ".....before detach.....\n";
-        udp_thread.detach();
+        if(isQuorum == 1) {
+            target_ip = *output;
+            udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
+            //std::cout << ".....before detach.....\n";
+            udp_thread.detach();
+        }
         std::cout << "\nRead from server\n" << *output << std::endl;
+
     }
 }
 
@@ -131,10 +135,12 @@ void Client::choose(int index) {
     if (output->index == 0) {
         std::cout << "\nCannot choose article with id " << index << std::endl;
     } else {
-        target_ip = output->content;
-        udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
-        std::cout << ".....before detach.....\n";
-        udp_thread.detach();
+        if(isQuorum == 1) {
+            target_ip = output->content;
+            udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
+         //   std::cout << ".....before detach.....\n";
+            udp_thread.detach();
+        }
         std::cout << "\nRead from server\n" << output->content << std::endl;
     }
 }
@@ -165,8 +171,8 @@ void Client::get_server_list() {
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 4) {
-        std::cout << "Usage: ./clientside client_ip server_ip client_port \n";
+    if (argc < 5) {
+        std::cout << "Usage: ./clientside client_ip server_ip client_port isQuorum \n";
         exit(1);
     }
     char *client_ip = (char *) argv[1];
@@ -177,6 +183,7 @@ int main(int argc, char *argv[]) {
     //char article_string[MAX_ARTICLE_LENGTH];
 
     Client conn(client_ip, serv_ip, self_port);
+    conn.isQuorum = stoi(argv[4]);
 
     while (1) {
         std::cout << "Please enter what function you want to perform [1-5]:\n"
