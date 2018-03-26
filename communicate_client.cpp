@@ -23,6 +23,8 @@ public:
     int sock = -1;
     char *self_ip;
     int self_port;
+    char *target_ip;
+ 
     void post(char * content);
 
     void read();
@@ -33,7 +35,7 @@ public:
 
     void get_server_list();
 
-    static void listen_for_article(char *own_ip, int port, int *socket_fd);
+    static void listen_for_article(char *own_ip, int port, int socket_fd);
 
     Client(char *ip, char *serv_ip, int port) {
         self_ip = ip;
@@ -44,7 +46,6 @@ public:
             exit(1);
         }
         std::cout << ".....Completed client creation.....\n";
-        //TODO: get server_ip - change self_ip to serv_ip
         struct sockaddr_in client_addr;
         if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
             perror("socket()");
@@ -61,9 +62,6 @@ public:
             close(sock);
             perror("binding socket");
         }
-        udp_thread = std::thread(listen_for_article, serv_ip, port, &sock);
-        std::cout << ".....before detach.....\n";
-        udp_thread.detach();
 //        if(udp_thread.joinable()){
 //            udp_thread.join();
 //        }
@@ -79,7 +77,7 @@ public:
     }
 };
 
-void Client::listen_for_article(char *serv_ip, int port, int *socket_fd) {
+void Client::listen_for_article(char *serv_ip, int port, int socket_fd) {
     struct sockaddr_in remote_addr;
     socklen_t slen = sizeof(remote_addr);
 
@@ -90,15 +88,13 @@ void Client::listen_for_article(char *serv_ip, int port, int *socket_fd) {
         perror("inet_aton failed");
         exit(1);
     }
-//    free(serv_ip);
-
     char article[MAXPOOLLENGTH];
     // Clear the buffer by filling null, it might have previously received data
     memset(article, '\0', MAXPOOLLENGTH);
 
     while(1) {
         // Try to receive some data; This is a blocking call
-        if (recvfrom(*socket_fd, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
+        if (recvfrom(socket_fd, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
             perror("recvfrom()");
             exit(1);
         }
@@ -122,6 +118,10 @@ void Client::read() {
     if (output == NULL) {
         clnt_perror(clnt, "Cannot read");
     } else {
+        target_ip = *output;
+        udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
+        std::cout << ".....before detach.....\n";
+        udp_thread.detach();
         std::cout << "\nRead from server\n" << *output << std::endl;
     }
 }
@@ -131,7 +131,11 @@ void Client::choose(int index) {
     if (output->index == 0) {
         std::cout << "\nCannot choose article with id " << index << std::endl;
     } else {
-        std::cout << "\nChosen article is:\n" << output->index << " " << output->content << std::endl;
+        target_ip = output->content;
+        udp_thread = std::thread(listen_for_article, target_ip, self_port, sock);
+        std::cout << ".....before detach.....\n";
+        udp_thread.detach();
+        std::cout << "\nRead from server\n" << output->content << std::endl;
     }
 }
 

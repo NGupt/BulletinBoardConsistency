@@ -201,49 +201,8 @@ int PeerClient::udp_synchronize(PeerClient *q, const char *ip, int port, const c
 
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
-int PeerClient::readVote(PeerClient *q, string req_type) {
+int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip) {
     cout << "entering readVote" << endl;
-    int serv_version = 0;
-    //randomly select some servers
-    subscriber_lock.lock();
-    random_shuffle(q->serverList.begin(), q->serverList.end());
-    subscriber_lock.unlock();
-
-    cout << "after subscribers lock" << endl;
-
-    for(int i=0; i<= (q->serverList.size())/2; ){
-        readQuorumList.push_back(make_pair(0, make_pair(q->serverList[i].first,q->serverList[i].second )));
-        cout << "after readQuorumList " << endl;
-        cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
-        i++;
-    }
-    int num_votes = 0;
-
-    while (num_votes < readQuorumList.size()) {
-        //We need ask our own vote as well !?
-        string vote_for("");
-        vote_for.append("READ");
-        vote_for.append(";");
-        if ((serv_version = udp_ask_vote(this, readQuorumList[num_votes].second.first.c_str(), readQuorumList[num_votes].second.second, vote_for.c_str(), sizeof(vote_for))) < 0) {
-            cout << "Could not ask for vote" << endl;
-        }
-        readQuorumList[num_votes].first = serv_version;
-        num_votes++;
-        cout << "num_votes " << num_votes << endl;
-    }
-    num_votes = 0;
-
-    //TODO: get these values
-//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
-//    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), q->choose_first);
-//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
-//    //At this point voting is done
-//    //search the read quorum for version given by serv_index, get the server target ip corresponding to it
-//    string target_serv_ip = max1->second.first;
-//    int serv_port = max1->second.second;
-
-
-    string target_serv_ip = readQuorumList[1].second.first;;
     int serv_port = readQuorumList[1].second.second;
     string fwd_req("");
     fwd_req.append("FWD_REQ");
@@ -371,12 +330,53 @@ string PeerClient::read() {
     if (isCoordinator(server_ip)) {
         //PeerClient *static_read_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
         string req_type = "READ;";
-        std::thread update_thread(&PeerClient::readVote, this, this, req_type);
+
+        int serv_version = 0;
+        //randomly select some servers
+        subscriber_lock.lock();
+        random_shuffle(serverList.begin(), serverList.end());
+        subscriber_lock.unlock();
+
+        cout << "after subscribers lock" << endl;
+
+        for(int i=0; i<= (serverList.size())/2; ){
+            readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first,serverList[i].second )));
+            cout << "after readQuorumList " << endl;
+            cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
+            i++;
+        }
+        int num_votes = 0;
+
+        while (num_votes < readQuorumList.size()) {
+            //We need ask our own vote as well !?
+            string vote_for("");
+            vote_for.append("READ");
+            vote_for.append(";");
+            if ((serv_version = udp_ask_vote(this, readQuorumList[num_votes].second.first.c_str(), readQuorumList[num_votes].second.second, vote_for.c_str(), sizeof(vote_for))) < 0) {
+                cout << "Could not ask for vote" << endl;
+            }
+            readQuorumList[num_votes].first = serv_version;
+            num_votes++;
+            cout << "num_votes " << num_votes << endl;
+        }
+        num_votes = 0;
+
+        //TODO: get these values
+//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+//    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), q->choose_first);
+//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
+//    //At this point voting is done
+//    //search the read quorum for version given by serv_index, get the server target ip corresponding to it
+//    string target_serv_ip = max1->second.first;
+//    int serv_port = max1->second.second;
+
+        string target_serv_ip = readQuorumList[1].second.first;
+        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip);
         if(update_thread.joinable()){
             update_thread.join();
         }
         //update_thread.detach();
-        return "You will get updated data from another server\n";
+        return target_serv_ip;
     }
     return "Please connect to coordinator\n";
 }
@@ -390,12 +390,53 @@ ArticleContent PeerClient::choose(int index) {
         string req_type = "CHOOSE;";
         req_type.append(to_string(index));
         req_type.append(";");
-        std::thread update_thread(&PeerClient::readVote, this, this, req_type);
+
+        int serv_version = 0;
+        //randomly select some servers
+        subscriber_lock.lock();
+        random_shuffle(serverList.begin(), serverList.end());
+        subscriber_lock.unlock();
+
+        cout << "after subscribers lock" << endl;
+
+        for(int i=0; i<= (serverList.size())/2; ){
+            readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first,serverList[i].second )));
+            cout << "after readQuorumList " << endl;
+            cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
+            i++;
+        }
+        int num_votes = 0;
+
+        while (num_votes < readQuorumList.size()) {
+            //We need ask our own vote as well !?
+            string vote_for("");
+            vote_for.append("READ");
+            vote_for.append(";");
+            if ((serv_version = udp_ask_vote(this, readQuorumList[num_votes].second.first.c_str(), readQuorumList[num_votes].second.second, vote_for.c_str(), sizeof(vote_for))) < 0) {
+                cout << "Could not ask for vote" << endl;
+            }
+            readQuorumList[num_votes].first = serv_version;
+            num_votes++;
+            cout << "num_votes " << num_votes << endl;
+        }
+        num_votes = 0;
+
+        //TODO: get these values
+//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+//    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), q->choose_first);
+//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
+//    //At this point voting is done
+//    //search the read quorum for version given by serv_index, get the server target ip corresponding to it
+//    string target_serv_ip = max1->second.first;
+//    int serv_port = max1->second.second;
+
+        string target_serv_ip = readQuorumList[1].second.first;
+        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip);
         if(update_thread.joinable()){
             update_thread.join();
         }
         //update_thread.detach();
-        strcpy(result.content, "You will get updated data from another server\n");
+        strcpy(result.content, target_serv_ip.c_str());
         return result;
     }
     strcpy(result.content, "Please connect to coordinator\n");

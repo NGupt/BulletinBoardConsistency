@@ -45,7 +45,6 @@ public:
     int insert_listen_fd;
     bool isCoordinator(string server_ip);
     static void listen_from(PeerClient *s, string remote_ip, int port);
-//    int updateServer(int art_id, string content, char *backup_IP, int backup_port);
     static int updateAllServers(PeerClient *p, ArticlePool articlePool, int reply_index);
     void outputServerList(PeerClient *p);
     ArticlePoolStruct get_article();
@@ -84,7 +83,8 @@ public:
     //decodes the first delimited part and then rest of the decoding and response back
     static void udp_recv_vote_req(PeerClient *s,string r_ip, int port);
     int writeVote(PeerClient *q, string write_content);
-    int readVote(PeerClient *q, string req_type);
+    //int readVote(PeerClient *q, string req_type);
+    int readVote(PeerClient *q, string req_type,  string target_serv_ip);
     static bool choose_first(const std::pair<int,pair<string,int> > &lhs, const std::pair<int,pair<string,int> > &rhs);
 
     std::mutex subscriber_lock;
@@ -94,8 +94,7 @@ public:
     std::mutex writelock;
     std::vector<PeerClient *> subscribers;
     char pool_content[MAXPOOLLENGTH];
-    /* Create lock if it doesn't exist, then try to lock.
-     * Returns status*/
+    /* Create lock if it doesn't exist, then try to lock.*/
     bool readLock(int id);
     bool writeLock(int id);
 
