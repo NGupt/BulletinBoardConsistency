@@ -338,7 +338,7 @@ string PeerClient::read() {
         //randomly select some servers
         if(serverList.size() < 3){
             perror("Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum");
-            exit(1);
+            return "Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum\n";
         }
         subscriber_lock.lock();
         random_shuffle(serverList.begin(), serverList.end());
@@ -401,7 +401,8 @@ ArticleContent PeerClient::choose(int index) {
 
         if(serverList.size() < 3){
             perror("Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum");
-            exit(1);
+            strcpy(result.content, "Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum\n");
+            return result;
         }
 
         //randomly select some servers
