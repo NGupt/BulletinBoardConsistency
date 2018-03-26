@@ -222,6 +222,10 @@ int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip, 
 int PeerClient::writeVote(PeerClient *q, string write_content) {
 //    cout << "entering writeVote " << write_content << endl;
 
+    if(q->serverList.size() < 3){
+        perror("Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum");
+        exit(1);
+    }
     int serv_version = 0;
     //randomly select some servers
     subscriber_lock.lock();
@@ -332,6 +336,10 @@ string PeerClient::read() {
         string req_type = "READ;";
         int serv_version = 0;
         //randomly select some servers
+        if(serverList.size() < 3){
+            perror("Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum");
+            exit(1);
+        }
         subscriber_lock.lock();
         random_shuffle(serverList.begin(), serverList.end());
         readQuorumList.clear();
@@ -390,6 +398,12 @@ ArticleContent PeerClient::choose(int index) {
         req_type.append(";");
 
         int serv_version = 0;
+
+        if(serverList.size() < 3){
+            perror("Numbers of servers connected to coordinator should atleast be 3 before proceeding with quorum");
+            exit(1);
+        }
+
         //randomly select some servers
         subscriber_lock.lock();
         random_shuffle(serverList.begin(), serverList.end());
