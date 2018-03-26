@@ -6,7 +6,7 @@ using std::mutex;
 using std::thread;
 using std::make_shared;
 
-static bool PeerClient::choose_first(const std::pair<int,pair<string,int> > &lhs,
+bool PeerClient::choose_first(const std::pair<int,pair<string,int> > &lhs,
                   const std::pair<int,pair<string,int> > &rhs) {
     bool result = lhs.first < rhs.first;
     cout << lhs.first << rhs.first << result << endl;
@@ -201,9 +201,8 @@ int PeerClient::udp_synchronize(PeerClient *q, const char *ip, int port, const c
 
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
-int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip) {
+int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip, int serv_port) {
     //cout << "entering readVote" << endl;
-    int serv_port = readQuorumList[1].second.second;
     string fwd_req("");
     fwd_req.append("FWD_REQ");
     fwd_req.append(";");
@@ -250,18 +249,17 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
 //        cout << "write num_votes " << num_votes << endl;
     }
 
-//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
-//    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
-//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
+    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
 //    //At this point voting is done
 //    //search the write quorum for version given by serv_index, get the server target ip corresponding to it
-//    string target_serv_ip = max1->second.first;
-//    int serv_port = max1->second.second;
-//    cout << "INFO: Read vote with latest version" << max1->first << " concluded" << endl;
+    string target_serv_ip = max1->second.first;
+    int serv_port = max1->second.second;
+    cout << "INFO: Write vote with latest version" << max1->first << " concluded " << target_serv_ip << ";" << serv_port << endl;
 
 
-    string target_serv_ip = writeQuorumList[0].second.first;
-    int serv_port = writeQuorumList[0].second.second;
+//    string target_serv_ip = writeQuorumList[0].second.first;
+//    int serv_port = writeQuorumList[0].second.second;
 //    cout << "INFO: Read vote with latest version" << target_serv_ip << " concluded" << endl;
 
 //udp to write
@@ -363,16 +361,16 @@ string PeerClient::read() {
         }
 
         //TODO: get these values
-//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
-//    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), q->choose_first);
-//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
+    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), choose_first);
+    std::cout << "Read max1: " << max1->second.first << ":" << max1->second.second << endl;
 //    //At this point voting is done
 //    //search the read quorum for version given by serv_index, get the server target ip corresponding to it
-//    string target_serv_ip = max1->second.first;
-//    int serv_port = max1->second.second;
+    string target_serv_ip = max1->second.first;
+    int serv_port = max1->second.second;
 
-        string target_serv_ip = readQuorumList[1].second.first;
-        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip);
+//        string target_serv_ip = readQuorumList[1].second.first;
+        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip, serv_port);
         if(update_thread.joinable()){
             update_thread.join();
         }
@@ -423,16 +421,16 @@ ArticleContent PeerClient::choose(int index) {
         }
 
         //TODO: get these values
-//    std::vector<pair<int,pair<string,int>> > ::iterator max1;
-//    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), q->choose_first);
-//    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
-//    //At this point voting is done
+    std::vector<pair<int,pair<string,int>> > ::iterator max1;
+    max1 = std::max_element(readQuorumList.begin(), readQuorumList.end(), choose_first);
+    std::cout << "Choose max1: " << max1->second.first << ":" << max1->second.second << endl;
+//    /At this point voting is done
 //    //search the read quorum for version given by serv_index, get the server target ip corresponding to it
-//    string target_serv_ip = max1->second.first;
-//    int serv_port = max1->second.second;
+    string target_serv_ip = max1->second.first;
+    int serv_port = max1->second.second;
 
-        string target_serv_ip = readQuorumList[1].second.first;
-        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip);
+//        string target_serv_ip = readQuorumList[1].second.first;
+        std::thread update_thread(&PeerClient::readVote, this, this, req_type, target_serv_ip, serv_port);
         if(update_thread.joinable()){
             update_thread.join();
         }

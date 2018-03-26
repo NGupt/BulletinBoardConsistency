@@ -57,8 +57,6 @@ public:
     int writeArticle(string article, int father, int index);
     void readArticleContent(string & articles, Article *now, int level);
     void getArticleContent(ArticleStruct* &articleP, Article *now, int level);
-    //ArticlePool deepCopy();
-    int getCount();
 
     void releaseAll();
     void releaseArticle(Article *article);

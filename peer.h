@@ -83,8 +83,7 @@ public:
     //decodes the first delimited part and then rest of the decoding and response back
     static void udp_recv_vote_req(PeerClient *s,string r_ip, int port);
     int writeVote(PeerClient *q, string write_content);
-    //int readVote(PeerClient *q, string req_type);
-    int readVote(PeerClient *q, string req_type,  string target_serv_ip);
+    int readVote(PeerClient *q, string req_type,  string target_serv_ip, int serv_port);
     static bool choose_first(const std::pair<int,pair<string,int> > &lhs, const std::pair<int,pair<string,int> > &rhs);
 
     std::mutex subscriber_lock;

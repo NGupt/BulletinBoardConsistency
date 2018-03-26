@@ -139,9 +139,6 @@ int ArticlePool::post(string article) {
 
 void ArticlePool::readArticleContent(string &articles, Article *now, int level) {
     string currentLine = "";
-//    for (int i = 0; i < 4 * level; i++) {
-//        currentLine.push_back(' ');
-//    }
     for (int i = 0; i < level; i++) {
         currentLine.push_back('\t');
     }
@@ -156,52 +153,8 @@ void ArticlePool::readArticleContent(string &articles, Article *now, int level) 
     }
 }
 
-
-//return an article pointer which is a deep copy of the given one;
-//ArticlePool ArticlePool::deepCopy(Article *article) {
-//    Article *res = new Article();
-//    res->index = article->index;
-//    res->content = article->content;
-//    for (int i = 0; i < article->nextArticles.size(); i++) {
-//        res->nextArticles.push_back(deepCopy(article->nextArticles[i]));
-//    }
-//    return res;
-//}
-
-
-//ArticlePool ArticlePool::deepCopy() {
-//    ArticlePool newPool = ArticlePool();
-//    cout << newPool.count << endl;
-//    cout << count << endl;
-//    newPool.count = count;
-//    for (int i = 0; i < isHeadArticle.size(); i++) {
-//        newPool.isHeadArticle.push_back(isHeadArticle[i]);
-//    }
-//    for (int i = 1; i <= count; i++) {
-//        if (isHeadArticles[i]) {
-//            newPool.articleMap[it->first] = deepCopy(it->second);
-//        }
-//    }
-//    return newPool;
-//}
-
-
-//read the content of article
-//string ArticlePool::read() {
-//    string articles = "";
-//    for (int i = 1; i <= count; i++) {
-//        if (isHeadArticle[i - 1]) {
-//            Article *now = articleMap[i];
-//            readArticleContent(articles, now, 0);
-//        }
-//    }
-//    return articles;
-//}
-
-
 string ArticlePool::read() {
     string articles = "";
-    //std::map<int, Article*> mymap;
     std::map<int, Article*>::iterator it;
     for (it=articleMap.begin(); it!=articleMap.end(); ++it){
         if (isHeadArticle[it->first-1]) {
@@ -210,11 +163,6 @@ string ArticlePool::read() {
         }
     }
     return articles;
-}
-
-
-int ArticlePool::getCount() {
-    return count;
 }
 
 void ArticlePool::getArticleContent(ArticleStruct *&article, Article *now, int level) {
@@ -323,48 +271,3 @@ void ArticlePool::decodeArticlePool(char *article) {
     }
 }
 
-
-
-
-//int main() {
-////    ArticlePool articlePool;
-////    //------------test article pool-----/
-////    ArticlePool newPool2(articlePool.getArticle());
-////    articlePool.post("Article 1");
-////    cout << "AAAA" << articlePool.read() << endl;
-////    int id1 = articlePool.post("Article 2");
-////    cout << articlePool.read() << endl;
-////    articlePool.reply("A reply for Article 2", id1);
-////    cout << articlePool.read() << endl;
-////    int id2 = articlePool.reply("A reply for Article 2", id1);
-////    cout << articlePool.read() << endl;
-////    articlePool.reply("A reply for Article 4", id2);
-////    cout << articlePool.read() << endl;
-////    cout << "--------tests for single choose-----" << endl;
-////    Article * now = articlePool.choose(id1);
-////    if (now != NULL)
-////    cout << now->index << " " << now->content << endl;
-////    now = articlePool.choose(id2);
-////    if (now != NULL)
-////    cout << now->index << " " << now->content << endl;
-////    now = articlePool.choose(6);
-////    ArticlePool newPool(articlePool.getArticle());
-////    newPool.post("newnewnew");
-////    cout << articlePool.read() << endl;
-////    cout << newPool.read() << endl;
-////
-////    cout << "testing article pool struct" << endl;
-////    cout << articlePool.read() << endl;
-////    ArticlePoolStruct pool = articlePool.getArticle();
-////    articlePool.PrintArticlePoolStruct(pool);
-//    ArticlePool newPool3;
-//    newPool3.post("a new article");
-//    cout << newPool3.read() << endl;
-//    cout << "testing udp article message" << endl;
-//    char * poolMessage = newPool3.encodeArticlePool();
-//    cout << poolMessage << endl;
-//    //newPool3.PrintArticlePoolStruct(poolMessage);
-//    newPool3.decodeArticlePool(poolMessage);
-//    //cout << newPool3.read();
-//    return 0;
-//}
