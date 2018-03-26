@@ -114,7 +114,7 @@ int PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port, co
     remoteAddr.ai_protocol = 0;
     remoteAddr.ai_flags = AI_ADDRCONFIG;
 
-    cout << "sending pool: " << buf <<endl;
+//    cout << "sending pool: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         freeaddrinfo(res);
@@ -162,7 +162,7 @@ int PeerClient::udp_synchronize(PeerClient *q, const char *ip, int port, const c
     remoteAddr.ai_protocol = 0;
     remoteAddr.ai_flags = AI_ADDRCONFIG;
 
-    cout << "buf: " << buf <<endl;
+    cout << "write buf: " << buf <<endl;
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         freeaddrinfo(res);
@@ -202,7 +202,7 @@ int PeerClient::udp_synchronize(PeerClient *q, const char *ip, int port, const c
 /* Starts a read vote for the identified article */
 /* Returns when vote is completed. */
 int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip) {
-    cout << "entering readVote" << endl;
+    //cout << "entering readVote" << endl;
     int serv_port = readQuorumList[1].second.second;
     string fwd_req("");
     fwd_req.append("FWD_REQ");
@@ -218,17 +218,19 @@ int PeerClient::readVote(PeerClient *q, string req_type, string target_serv_ip) 
 }
 
 int PeerClient::writeVote(PeerClient *q, string write_content) {
-    cout << "entering writeVote " << write_content << endl;
+//    cout << "entering writeVote " << write_content << endl;
 
     int serv_version = 0;
     //randomly select some servers
     subscriber_lock.lock();
     random_shuffle(q->serverList.begin(), q->serverList.end());
+    writeQuorumList.clear();
     subscriber_lock.unlock();
 
-    cout << "subscribers , print write quorum" << endl;
+//    cout << "subscribers , print write quorum" << endl;
+    
     for(int i=0; i<= (q->serverList.size())/2; i++){
-        cout << "entering loop " << i << endl;
+//        cout << "entering loop " << i << endl;
         writeQuorumList.push_back(make_pair(0, make_pair(q->serverList[q->serverList.size()- i - 1].first,q->serverList[q->serverList.size()- i - 1].second )));
         cout << writeQuorumList[i].second.first << ":" << writeQuorumList[i].second.second << endl;
     }
@@ -245,9 +247,8 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
         }
         writeQuorumList[num_votes].first = serv_version;
         num_votes++;
-        cout << "num_votes " << num_votes << endl;
+//        cout << "write num_votes " << num_votes << endl;
     }
-    num_votes = 0;
 
 //    std::vector<pair<int,pair<string,int>> > ::iterator max1;
 //    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
@@ -261,19 +262,19 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
 
     string target_serv_ip = writeQuorumList[0].second.first;
     int serv_port = writeQuorumList[0].second.second;
-    cout << "INFO: Read vote with latest version" << target_serv_ip << " concluded" << endl;
+//    cout << "INFO: Read vote with latest version" << target_serv_ip << " concluded" << endl;
 
 //udp to write
     string update_req = "UPDATE;";
     update_req.append(write_content);
     update_req.append(";");
+//    cout << "Write content is: " << write_content << endl;
     udp_synchronize(this, target_serv_ip.c_str(), serv_port, update_req.c_str(), update_req.length());
     string request = "POOL;";
     udp_get_updated_pool(this, target_serv_ip.c_str(), serv_port, request.c_str(), request.length()); //TODO: check for null on server side
-    cout << "pool is " << pool_content << endl;
+//    cout << "pool is " << pool_content << endl;
     string sync_req = "SYNCHRONIZE;";
     sync_req.append(pool_content);
-    sync_req.append(";");
     //write the same content to rest of the servers
     for(int i=0; i< writeQuorumList.size(); i++) {
         udp_synchronize(this, writeQuorumList[i].second.first.c_str(), writeQuorumList[i].second.second, sync_req.c_str(), sync_req.length());
@@ -287,12 +288,12 @@ int PeerClient::post(char *content) {
     req_type.append(to_string(0).c_str()); //parent would be 0 if post
     req_type.append(";");
     req_type.append(content);
-    cout << "before static " << req_type << endl;
+//    cout << "before static " << req_type << endl;
     //PeerClient *static_post_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
     if (isCoordinator(server_ip)) {
-        cout << "before thread" <<endl;
+//        cout << "before thread" <<endl;
         std::thread post_thread(&PeerClient::writeVote, this, this, req_type);
-        cout << "before detach" <<endl;
+//        cout << "before detach" <<endl;
         if(post_thread.joinable()){
             post_thread.join();
         }
@@ -310,12 +311,12 @@ int PeerClient::reply(char *content, int index) {
     req_type.append(";");
     req_type.append(content);
 
-    cout << "before static " << req_type << endl;
+//    cout << "before static " << req_type << endl;
     //PeerClient *static_post_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
     if (isCoordinator(server_ip)) {
-        cout << "before thread" <<endl;
+//        cout << "before thread" <<endl;
         std::thread post_thread(&PeerClient::writeVote, this, this, req_type);
-        cout << "before detach" <<endl;
+//        cout << "before detach" <<endl;
         if(post_thread.joinable()){
             post_thread.join();
         }
@@ -335,13 +336,14 @@ string PeerClient::read() {
         //randomly select some servers
         subscriber_lock.lock();
         random_shuffle(serverList.begin(), serverList.end());
+        readQuorumList.clear();
         subscriber_lock.unlock();
 
-        cout << "after subscribers lock" << endl;
+//        cout << "after subscribers lock" << endl;
 
         for(int i=0; i<= (serverList.size())/2; ){
             readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first,serverList[i].second )));
-            cout << "after readQuorumList " << endl;
+//            cout << "after readQuorumList " << endl;
             cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
             i++;
         }
@@ -357,9 +359,8 @@ string PeerClient::read() {
             }
             readQuorumList[num_votes].first = serv_version;
             num_votes++;
-            cout << "num_votes " << num_votes << endl;
+//            cout << "read num_votes " << num_votes << endl;
         }
-        num_votes = 0;
 
         //TODO: get these values
 //    std::vector<pair<int,pair<string,int>> > ::iterator max1;
@@ -395,13 +396,14 @@ ArticleContent PeerClient::choose(int index) {
         //randomly select some servers
         subscriber_lock.lock();
         random_shuffle(serverList.begin(), serverList.end());
+        readQuorumList.clear();
         subscriber_lock.unlock();
 
-        cout << "after subscribers lock" << endl;
+//        cout << "after subscribers lock" << endl;
 
         for(int i=0; i<= (serverList.size())/2; ){
             readQuorumList.push_back(make_pair(0, make_pair(serverList[i].first,serverList[i].second )));
-            cout << "after readQuorumList " << endl;
+  //          cout << "after readQuorumList " << endl;
             cout << readQuorumList[i].second.first << ":" << readQuorumList[i].second.second << endl;
             i++;
         }
@@ -417,9 +419,8 @@ ArticleContent PeerClient::choose(int index) {
             }
             readQuorumList[num_votes].first = serv_version;
             num_votes++;
-            cout << "num_votes " << num_votes << endl;
+//            cout << "read num_votes " << num_votes << endl;
         }
-        num_votes = 0;
 
         //TODO: get these values
 //    std::vector<pair<int,pair<string,int>> > ::iterator max1;

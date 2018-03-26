@@ -42,7 +42,7 @@ choose_1_svc(int index, char *client_ip, int client_port, struct svc_req *rqstp)
 }
 
 int *
-reply_1_svc( char *client_ip, int client_port, char *content, int index, struct svc_req *rqstp) {
+reply_1_svc(char *content, int index, char *client_ip, int client_port, struct svc_req *rqstp) {
     static int result = -1;
     now->client_ip = client_ip;
     now->client_port = client_port;
