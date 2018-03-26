@@ -57,7 +57,7 @@ int PeerClient::udp_ask_vote(PeerClient *q, const char *ip, int port, const char
     }
 
     string recvbuf(recbuf, strlen(recbuf));
-    int version_pos = recvbuf.find(buf);
+    int version_pos = recvbuf.find(";");
     int version = atoi(recvbuf.substr(version_pos + 1).c_str());
     freeaddrinfo(res);
     close(fd);
@@ -66,7 +66,7 @@ int PeerClient::udp_ask_vote(PeerClient *q, const char *ip, int port, const char
 
 
 //coordinator to selected read quorum server so that server can send things to client
-int PeerClient::udp_fwd_req(const char *serv_ip, int serv_port, const char *client_ip, int client_port, const char *buf, int buf_size) {
+int PeerClient::udp_fwd_req(const char *serv_ip, int serv_port, const char *buf, int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -91,17 +91,7 @@ int PeerClient::udp_fwd_req(const char *serv_ip, int serv_port, const char *clie
         return -1;
     }
 
-    const int new_buf_length = buf_size + MAXIP + 4;
-
-    string new_buf("");
-    new_buf.append("FWD_REQ");
-    new_buf.append(";");
-    new_buf.append(client_ip);
-    new_buf.append(";");
-    new_buf = std::to_string(client_port);
-    new_buf.append(";");
-    new_buf.append(buf);
-    if ((sendto(fd, new_buf.c_str(), new_buf_length, 0, res->ai_addr, res->ai_addrlen)) == -1) {
+    if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1) {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
@@ -113,7 +103,7 @@ int PeerClient::udp_fwd_req(const char *serv_ip, int serv_port, const char *clie
 }
 
 //coordinator to latest pool
-char * PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port, const char *buf, const int buf_size) {
+int PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port, const char *buf, const int buf_size) {
     int fd;
     struct addrinfo remoteAddr;
     struct addrinfo* res;
@@ -128,21 +118,21 @@ char * PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port,
     if (getaddrinfo(ip, std::to_string(static_cast<long long>(port)).c_str(), &remoteAddr, &res) != 0) {
         perror("cant get addressinfo");
         freeaddrinfo(res);
-        return NULL;
+        return -1;
     }
 
     if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
         perror("cant create socket");
         freeaddrinfo(res);
         close(fd);
-        return NULL;
+        return -1;
     }
 
     if ((sendto(fd, buf, buf_size, 0, res->ai_addr, res->ai_addrlen)) == -1) {
         perror("cant send ");
         freeaddrinfo(res);
         close(fd);
-        return NULL;
+        return -1;
     }
 
     /* Begin listening for confirmation of, else remove server from serverList*/
@@ -152,12 +142,12 @@ char * PeerClient::udp_get_updated_pool(PeerClient *q, const char *ip, int port,
         q->serverList.erase(std::remove(q->serverList.begin(), q->serverList.end(), pair<string,int>(ip,port)), q->serverList.end());
         freeaddrinfo(res);
         close(fd);
-        return q->pool_content;
+        return 0;
     }
 
     freeaddrinfo(res);
     close(fd);
-    return q->pool_content;
+    return 0;
 }
 
 //coordinator to write quorum servers to update their pool
@@ -237,11 +227,9 @@ int PeerClient::readVote(PeerClient *q, string req_type) {
         if ((serv_version = udp_ask_vote(this, readQuorumList[num_votes].second.first.c_str(), readQuorumList[num_votes].second.second, vote_for.c_str(), sizeof(vote_for))) < 0) {
             cout << "Could not ask for vote" << endl;
         }
-            //readQuorumList.push_back(make_pair(serv_version, make_pair(readQuorumList[num_votes].second.first.c_str(), readQuorumList[num_votes].second.second)));
-            readQuorumList[num_votes].first = serv_version;
-            num_votes++;
-            cout << "num_votes " << num_votes << endl;
-
+        readQuorumList[num_votes].first = serv_version;
+        num_votes++;
+        cout << "num_votes " << num_votes << endl;
     }
     num_votes = 0;
 
@@ -257,11 +245,15 @@ int PeerClient::readVote(PeerClient *q, string req_type) {
 
     string target_serv_ip = readQuorumList[1].second.first;;
     int serv_port = readQuorumList[1].second.second;
-    string content_request = "POOL;";
-    //TODO: read updated pool, add a check for null
-    char *pool_content = udp_get_updated_pool(this, target_serv_ip.c_str(), serv_port, content_request.c_str(), content_request.length());
-    req_type.append(pool_content);
-    udp_fwd_req(target_serv_ip.c_str(), serv_port, client_ip, client_port, req_type.c_str(), strlen(pool_content));
+    string fwd_req("");
+    fwd_req.append("FWD_REQ");
+    fwd_req.append(";");
+    fwd_req.append(client_ip);
+    fwd_req.append(";");
+    fwd_req = std::to_string(client_port);
+    fwd_req.append(";");
+    fwd_req.append(req_type);
+    udp_fwd_req(target_serv_ip.c_str(), serv_port, fwd_req.c_str(), fwd_req.length());
     return 0;
 }
 
@@ -291,14 +283,12 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
         if ((serv_version = udp_ask_vote(this, writeQuorumList[num_votes].second.first.c_str(), writeQuorumList[num_votes].second.second, vote_for.c_str(), sizeof(vote_for))) < 0) {
             cout << "Could not ask for vote" << endl;
         }
-            //writeQuorumList.push_back(make_pair(serv_version, make_pair(writeQuorumList[num_votes].second.first.c_str(), writeQuorumList[num_votes].second.second)));
         writeQuorumList[num_votes].first = serv_version;
-
         num_votes++;
-            cout << "num_votes " << num_votes << endl;
-
+        cout << "num_votes " << num_votes << endl;
     }
     num_votes = 0;
+
 //    std::vector<pair<int,pair<string,int>> > ::iterator max1;
 //    max1 = std::max_element(writeQuorumList.begin(), writeQuorumList.end(), q->choose_first);
 //    std::cout << "max1: " << max1->second.first << ":" << max1->second.second;
@@ -317,25 +307,29 @@ int PeerClient::writeVote(PeerClient *q, string write_content) {
     string update_req = "UPDATE;";
     update_req.append(write_content);
     udp_synchronize(this, target_serv_ip.c_str(), serv_port, update_req.c_str(), update_req.length());
-
     string request = "POOL;";
-    char *pool_content = udp_get_updated_pool(this, target_serv_ip.c_str(), serv_port, request.c_str(), request.length());
+    udp_get_updated_pool(this, target_serv_ip.c_str(), serv_port, request.c_str(), request.length()); //TODO: check for null on server side
     string sync_req = "SYNCHRONIZE;";
     sync_req.append(pool_content);
     //write the same content to rest of the servers
     for(int i=0; i< writeQuorumList.size(); i++) {
         udp_synchronize(this, writeQuorumList[i].second.first.c_str(), writeQuorumList[i].second.second, sync_req.c_str(), sync_req.length());
     }
+    return 0;
 }
 
 int PeerClient::post(char *content) {
     int output = -1;
-    std::string myString(content, strlen(content));
-    cout << "before static " << myString << endl;
+    string req_type = "POST;";
+    req_type.append(";");
+    req_type.append(to_string(0).c_str()); //parent would be 0 if post
+    req_type.append(";");
+    req_type.append(content);
+    cout << "before static " << req_type << endl;
     //PeerClient *static_post_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
     if (isCoordinator(server_ip)) {
         cout << "before thread" <<endl;
-        std::thread post_thread(&PeerClient::writeVote, this, this, myString);
+        std::thread post_thread(&PeerClient::writeVote, this, this, req_type);
         cout << "before detach" <<endl;
         if(post_thread.joinable()){
             post_thread.join();
@@ -349,13 +343,17 @@ int PeerClient::post(char *content) {
 
 int PeerClient::reply(char *content, int index) {
     int output = -1;
-    std::string myString(content, strlen(content));
-    myString.append(to_string(index));
-    cout << "before static " << myString << endl;
+    string req_type = "REPLY;";
+    req_type.append(";");
+    req_type.append(to_string(index));
+    req_type.append(";");
+    req_type.append(content);
+
+    cout << "before static " << req_type << endl;
     //PeerClient *static_post_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
     if (isCoordinator(server_ip)) {
         cout << "before thread" <<endl;
-        std::thread post_thread(&PeerClient::writeVote, this, this, myString);
+        std::thread post_thread(&PeerClient::writeVote, this, this, req_type);
         cout << "before detach" <<endl;
         if(post_thread.joinable()){
             post_thread.join();
@@ -371,6 +369,7 @@ string PeerClient::read() {
     if (isCoordinator(server_ip)) {
         //PeerClient *static_read_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
         string req_type = "READ;";
+        req_type.append(";");
         std::thread update_thread(&PeerClient::readVote, this, this, req_type);
         if(update_thread.joinable()){
             update_thread.join();
@@ -384,24 +383,23 @@ string PeerClient::read() {
 ArticleContent PeerClient::choose(int index) {
     static ArticleContent result;
     result.content = new char[MAXSTRING];
-    Article *resultArticle = articlePool.choose(index);
-    if (resultArticle == NULL) {
-        strcpy(result.content, "");
-        result.index = 0;
-        cout << "The article with id " << index << " doesn't exist in the server." << endl;
-    } else {
-        strcpy(result.content, resultArticle->content.c_str());
-        result.index = resultArticle->index;
-        cout << "The client choose the article: " << endl;
-        cout << result.index << " " << result.content << endl;
+    result.index = index;
+    if (isCoordinator(server_ip)) {
+        //PeerClient *static_read_peer = new PeerClient(server_ip,server_port,coordinator_ip,coordinator_port, isQuorum);
+        string req_type = "CHOOSE;";
+        req_type.append(to_string(index));
+        req_type.append(";");
+        std::thread update_thread(&PeerClient::readVote, this, this, req_type);
+        if(update_thread.joinable()){
+            update_thread.join();
+        }
+        //update_thread.detach();
+        strcpy(result.content, "You will get updated data from another server\n");
+        return result;
     }
+    strcpy(result.content, "Please connect to coordinator\n");
     return result;
-}
 
-
-//get the current articlePool
-ArticlePoolStruct PeerClient::getLocalArticle() {
-    return articlePool.getArticle();
 }
 
 server_list PeerClient::get_server_list() {

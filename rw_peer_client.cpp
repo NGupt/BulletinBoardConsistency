@@ -63,12 +63,6 @@ ArticleContent PeerClient::choose(int index) {
     return result;
 }
 
-
-//get the current articlePool
-ArticlePoolStruct PeerClient::getLocalArticle() {
-    return articlePool.getArticle();
-}
-
 server_list PeerClient::get_server_list() {
     server_list output;
     if (isCoordinator(server_ip)) {

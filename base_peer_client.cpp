@@ -267,13 +267,12 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
         int pos = 0;
         std::string delimiter = ";";
         std::string first_command = "";
-
         string req(vote_req, strlen(vote_req));
+
         pos = req.find(delimiter);
         first_command = req.substr(0, pos);
         cout << "first_command " << first_command <<endl;
 
-        req = req.substr(pos+1);
         if((strcmp(first_command.c_str(),"READ") == 0)||(strcmp(first_command.c_str(),"WRITE") == 0)) {
             if (s->readlock.try_lock()) {
                 printf("INFO: Read-locking %d\n", s->articlePool.count);
@@ -291,48 +290,59 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             }
             s->readlock.unlock(); //clear the lock
         } else if (strcmp(first_command.c_str(),"FWD_REQ") == 0) {
+            req = req.substr(pos+1); //client_ip;client_port;req_type;index
             pos = req.find(delimiter);
             string client_ip = req.substr(0, pos);
-            req = req.substr(pos + 1);
+            req = req.substr(pos + 1); //client_port;req_type;index
             pos = req.find(delimiter);
             int client_port = atoi(req.substr(0, pos).c_str());
-            string req_type = req.substr(pos + 1);
-            string return_content = "";
+            req = req.substr(pos + 1); //req_type;index
+            pos = req.find(delimiter);
+            string req_type = req.substr(0, pos).c_str();
             int choose_index = 0;
-            if (strcmp(req_type.c_str(), "READ") == 0) {
-                req = req.substr(pos + 1);
-                pos = req.find(delimiter);
-                return_content = req.substr(pos + 1);
-            }
-            else if(strcmp(req_type.c_str(),"CHOOSE") == 0){
-//                req = req.substr(pos+1);
-//                pos = req.find(delimiter);
-//                choose_index = atoi(req.substr(0, pos).c_str());   //returning line
-//                req = req.substr(pos+1);
-//                pos = req.find(delimiter);
-//                return_content = req.substr(pos+1);
-            }
-            //TODO: create client socket and send to that
-            int client_sock = -1;
+            if (strcmp(req.substr(pos + 1).c_str(),"") !=0)
+                choose_index = atoi(req.substr(pos + 1).c_str());
+            string return_content = "";
             if (s->readlock.try_lock()) {
-                //resend the received data to check if server is up
-                cout << "sending received pool content to client " << client_ip << ":" << client_port << endl;
-                if ((sendto(client_sock, return_content.c_str(), return_content.length(), 0, (struct sockaddr *) &remote_addr, slen)) ==
-                    -1) {
-                    close(client_sock);
-                    perror("Error: acknowledging the received string");
-                    throw;
+                if (strcmp(req_type.c_str(), "READ") == 0) {
+                    return_content = s->articlePool.read();
+                } else if (strcmp(req_type.c_str(), "CHOOSE") == 0) {
+                    return_content = s->articlePool.choose(choose_index)->content;
                 }
             }
             s->readlock.unlock(); //clear the lock
+            int client_sock = -1;
+            struct addrinfo remoteAddr;
+            struct addrinfo* res;
+            memset(&remoteAddr, 0, sizeof(remoteAddr));
+            remoteAddr.ai_family = AF_UNSPEC;
+            remoteAddr.ai_socktype = SOCK_DGRAM;
+            remoteAddr.ai_protocol = 0;
+            remoteAddr.ai_flags = AI_ADDRCONFIG;
+
+            cout << "return_content: " << return_content <<endl;
+            if (getaddrinfo(client_ip.c_str(), std::to_string(static_cast<long long>(client_port)).c_str(), &remoteAddr, &res) != 0) {
+                perror("cant get addressinfo");
+                freeaddrinfo(res);
+            }
+
+            if ((client_sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
+                perror("cant create socket");
+                freeaddrinfo(res);
+                close(client_sock);
+            }
+            cout << "sending received pool content to client " << client_ip << ":" << client_port << endl;
+            if ((sendto(client_sock, return_content.c_str(), return_content.length(), 0, res->ai_addr, res->ai_addrlen)) == -1) {
+                perror("cant send ");
+                freeaddrinfo(res);
+                close(client_sock);
+            }
             close(client_sock);
         } else if (strcmp(first_command.c_str(),"POOL") == 0){
             if (s->readlock.try_lock()) {
-                string pool_content = s->articlePool.read();
-                cout << "returning latest pool content to coordinator " << pool_content << endl;
-                if ((sendto(s->insert_listen_fd, pool_content.c_str(), pool_content.length(), 0,
-                            (struct sockaddr *) &remote_addr, slen)) ==
-                    -1) {
+                string return_content = s->articlePool.read();
+                cout << "returning latest pool content to coordinator " << return_content << endl;
+                if ((sendto(s->insert_listen_fd, return_content.c_str(), return_content.length(), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                     close(s->insert_listen_fd);
                     s->insert_listen_fd = -1;
                     perror("Error: acknowledging the received string");
@@ -341,35 +351,36 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             }
             s->readlock.unlock(); //clear the lock
         } else if (strcmp(first_command.c_str(),"SYNCHRONIZE") == 0){
+            req = req.substr(pos+1); //return_content
             if (s->writelock.try_lock()) {
-                string content = req;
-                cout << "content: " << content << endl;
-
-                //s->articlePool.releaseAll();
-                char *pool_content = new char[content.length() + 1];
-                std::strcpy(pool_content, content.c_str());
-                s->decode_articles(pool_content); //will decode and save the pool content to pool of server
-                free(pool_content);
+                char *return_content = new char[req.length() + 1];
+                std::strcpy(return_content, req.c_str());
+                //s->articlePool.releaseAll(); // TODO: check
+                s->decode_articles(return_content); //will decode and save the pool content to pool of server
+                free(return_content);
             }
             s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
-            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) ==
-                -1) {
+            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                 close(s->insert_listen_fd);
                 s->insert_listen_fd = -1;
                 perror("Error: acknowledging the received string");
                 throw;
             }
         } else if (strcmp(first_command.c_str(),"UPDATE") == 0){
+            req = req.substr(pos+1); //index;write_content
+            pos = req.find(delimiter);
+            int reply_index = 0;
+            reply_index = atoi(req.substr(0, pos).c_str());
+            string write_content  = req.substr(pos+1).c_str();
             if (s->writelock.try_lock()) {
-                string content = req;//.substr(pos+1);
-                s->articlePool.post(content);
-                cout << "content: " << content << endl;
+                cout << "content: " << write_content << endl;
+                s->articlePool.storeArticle(write_content, reply_index);
+
             }
             s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
-            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) ==
-                -1) {
+            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) == -1) {
                 close(s->insert_listen_fd);
                 s->insert_listen_fd = -1;
                 perror("Error: acknowledging the received string");

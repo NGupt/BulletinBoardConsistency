@@ -2,7 +2,14 @@
 #include "communicate.h"
 #include "string.h"
 #include "stdlib.h"
+#include <unistd.h>
 #include <string>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <thread>
+
 using namespace std;
 
 
@@ -14,6 +21,8 @@ public:
     CLIENT * clnt;
     char *self_ip;
     int self_port;
+    std::thread udp_thread;
+
     void post(char * content);
 
     void read();
@@ -24,6 +33,8 @@ public:
 
     void get_server_list();
 
+    static void listen_for_article(char *own_ip, int port);
+
     Client(char *ip, char *serv_ip) {
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
         if (clnt == NULL) {
@@ -31,13 +42,62 @@ public:
             exit(1);
         }
         std::cout << ".....Completed client creation.....\n";
+        //TODO: get server_ip - change self_ip to serv_ip
+        udp_thread = std::thread(listen_for_article, self_ip, self_port);
+        udp_thread.detach();
     }
 
     ~Client() {
+        if(udp_thread.joinable()){
+            udp_thread.join();
+        }
         if (clnt)
             clnt_destroy(clnt);
+
     }
 };
+
+void Client::listen_for_article(char *serv_ip, int port) {
+    struct sockaddr_in si_other, client_addr;
+    int sock = -1;
+    socklen_t slen = sizeof(si_other);
+    int optval = 1;
+
+    if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        perror("socket()");
+        exit(1);
+    }
+    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+
+    memset((char *) &si_other, 0, sizeof(si_other));
+    si_other.sin_family = AF_INET;
+    si_other.sin_port = htons(port);
+
+    if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
+        fprintf(stderr, "inet_aton failed\n");
+        exit(1);
+    }
+
+    bzero((char *) &client_addr, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    client_addr.sin_port = htons((unsigned short) port);
+    if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
+        fprintf(stderr, "could not bind \n");
+        close(sock);
+        exit(1);
+    }
+    char article[MAXPOOLLENGTH];
+    // Clear the buffer by filling null, it might have previously received data
+    memset(article, '\0', MAXPOOLLENGTH);
+
+    // Try to receive some data; This is a blocking call
+    if (recvfrom(sock, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
+        perror("recvfrom()");
+        exit(1);
+    }
+    std::cout << "..... received....... \n" << article << "\n.....\n";
+}
 
 void Client::post(char * content) {
     auto output = post_1(content, self_ip, self_port, clnt);

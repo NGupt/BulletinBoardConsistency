@@ -36,8 +36,6 @@ ArticlePool::ArticlePool(ArticlePoolStruct pool) {
     }
 }
 
-//
-//TODO
 ArticlePool::~ArticlePool() {
     //releaseAll();
 }

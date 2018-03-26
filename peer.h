@@ -49,7 +49,6 @@ public:
     static int updateAllServers(PeerClient *p, ArticlePool articlePool, int reply_index);
     void outputServerList(PeerClient *p);
     ArticlePoolStruct get_article();
-    ArticlePoolStruct getLocalArticle();
     server_list buildServerList();
     int post(char * content);
     int send_flag(int flag);
@@ -63,7 +62,7 @@ public:
     void decode_articles(char *temp_articles);
     PeerClient(string ip, int server_port, string coordinator_ip, int coordinator_port, int isQuorum);
     ~PeerClient();
-    char *client_ip = "127.0.0.1";
+    char *client_ip = new char[MAXIP];
     int client_port = 1111;
 
     void msleep_rand(int from_ms, int to_ms);
@@ -77,9 +76,9 @@ public:
     //first delimited part is READ/WRITE
     int udp_ask_vote(PeerClient *q, const char* ip, int port, const char* buf, int buf_size);
     //first delimited part is FWD_REQ
-    int udp_fwd_req(const char* target_serv_ip, int serv_port, const char* client_ip, int client_port, const char* buf, int buf_size);
+    int udp_fwd_req(const char* target_serv_ip, int serv_port, const char* buf, int buf_size);
     //first delimited part is POOL
-    char *udp_get_updated_pool(PeerClient *q, const char *ip, int port, const char *pool_content, const int buf_size);
+    int udp_get_updated_pool(PeerClient *q, const char *ip, int port, const char *pool_content, const int buf_size);
     //first delimited part is SYNCHRONIZE
     int udp_synchronize(PeerClient *q, const char *ip, int port, const char *buf, int buf_size);
     //decodes the first delimited part and then rest of the decoding and response back
