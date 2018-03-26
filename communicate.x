@@ -31,12 +31,11 @@ struct ArticlePoolStruct {
 
 program COMMUNICATE_PROG {
     version COMMUNICATE_VERSION {
-        int POST(string) = 1;
-        string READ() = 2;
-        ArticleContent CHOOSE(int) = 3;
-        int REPLY(string, int) = 4;
-        int SEND_FLAG(int) = 5;
-        server_list GET_SERVER_LIST() = 9;
-        int JOIN_SERVER(IP, int) = 10;
+        int POST(string, string, int) = 1;
+        string READ(string, int) = 2;
+        ArticleContent CHOOSE(int, string, int) = 3;
+        int REPLY(string, int, string, int) = 4;
+        server_list GET_SERVER_LIST() = 5;
+        int JOIN_SERVER(IP, int) = 6;
     } = 1;
 } = 0x20000001;

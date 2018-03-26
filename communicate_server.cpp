@@ -5,8 +5,10 @@
 
 ////////////////////////////coordinator/////////////////////////////////////
 int *
-post_1_svc(char *content, struct svc_req *rqstp) {
+post_1_svc(char *content, char *client_ip, int client_port, struct svc_req *rqstp) {
     static int result = 0;
+    now->client_ip = client_ip;
+    now->client_port = client_port;
     auto res = now->post(content);
     result = res;
     if (result == 0) {
@@ -19,8 +21,10 @@ post_1_svc(char *content, struct svc_req *rqstp) {
 }
 
 char **
-read_1_svc(struct svc_req *rqstp) {
+read_1_svc( char *client_ip, int client_port, struct svc_req *rqstp) {
     static char *result = new char[MAXPOOLLENGTH];
+    now->client_ip = client_ip;
+    now->client_port = client_port;
     string resultStr = now->read();
     strcpy(result, resultStr.c_str());
     cout << "Read from server:" << endl;
@@ -29,15 +33,19 @@ read_1_svc(struct svc_req *rqstp) {
 }
 
 ArticleContent *
-choose_1_svc(int index, struct svc_req *rqstp) {
+choose_1_svc(int index, char *client_ip, int client_port, struct svc_req *rqstp) {
     static ArticleContent result;
+    now->client_ip = client_ip;
+    now->client_port = client_port;
     result = now->choose(index);
     return &result;
 }
 
 int *
-reply_1_svc(char *content, int index, struct svc_req *rqstp) {
+reply_1_svc( char *client_ip, int client_port, char *content, int index, struct svc_req *rqstp) {
     static int result = -1;
+    now->client_ip = client_ip;
+    now->client_port = client_port;
     result = now->reply(content, index);
     if (result == -1) {
         cout << "Can't reply to article with id " << index << "." << endl;
@@ -45,19 +53,6 @@ reply_1_svc(char *content, int index, struct svc_req *rqstp) {
         cout << "Reply article " << index << " with:";
         cout << result << " " << content << endl;
     }
-    return &result;
-}
-
-
-int *
-send_flag_1_svc(int arg1,  struct svc_req *rqstp)
-{
-    static int  result;
-
-    /*
-     * insert server code here
-     */
-
     return &result;
 }
 

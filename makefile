@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++0x -g
+CXXFLAGS=-std=c++0x -g -fpermissive
 LIBS= -lnsl  -lpthread
 RPCGEN_FILE=communicate.x
 

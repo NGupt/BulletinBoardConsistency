@@ -9,7 +9,7 @@ int PeerClient::post(char *content) {
         output = articlePool.post(myString);
         updateAllServers(this, articlePool, 0);
     } else {
-        output = *post_1(content, pclnt);
+        output = *post_1(content, client_ip, client_port,pclnt);
         if (output == 0) {
             clnt_perror(pclnt, "Cannot post");
         } else {
@@ -48,7 +48,7 @@ int PeerClient::reply(char *content, int index) {
       updateAllServers(this, articlePool, index);
       return output;
   } else {
-      output = *reply_1(content, index, pclnt);
+      output = *reply_1(content, index, client_ip, client_port,pclnt);
       if (output == 0) {
           clnt_perror(pclnt, "Cannot reply");
       }
@@ -59,15 +59,6 @@ int PeerClient::reply(char *content, int index) {
 //get the current articlePool
 ArticlePoolStruct PeerClient::getLocalArticle() {
     return articlePool.getArticle();
-}
-
-
-int PeerClient::send_flag(int flag) {
-    auto output = send_flag_1(flag, pclnt);
-    if (output == (int *) NULL) {
-        clnt_perror (pclnt, "call failed");
-    }
-    return *output;
 }
 
 server_list PeerClient::get_server_list() {

@@ -25,33 +25,27 @@ static struct timeval TIMEOUT = { 25, 0 };
 
 ////////////////////////////// peer server////////////////////////////
 static int *
-_post_1 (char * *argp, struct svc_req *rqstp)
+_post_1 (post_1_argument *argp, struct svc_req *rqstp)
 {
-	return (post_1_svc(*argp, rqstp));
+	return (post_1_svc(argp->arg1, argp->arg2, argp->arg3, rqstp));
 }
 
 static char **
-_read_1 (void  *argp, struct svc_req *rqstp)
+_read_1 (read_1_argument *argp, struct svc_req *rqstp)
 {
-	return (read_1_svc(rqstp));
+	return (read_1_svc(argp->arg1, argp->arg2, rqstp));
 }
 
 static ArticleContent *
-_choose_1 (int  *argp, struct svc_req *rqstp)
+_choose_1 (choose_1_argument *argp, struct svc_req *rqstp)
 {
-	return (choose_1_svc(*argp, rqstp));
+	return (choose_1_svc(argp->arg1, argp->arg2, argp->arg3, rqstp));
 }
 
 static int *
 _reply_1 (reply_1_argument *argp, struct svc_req *rqstp)
 {
-	return (reply_1_svc(argp->arg1, argp->arg2, rqstp));
-}
-
-static int *
-_send_flag_1 (int  *argp, struct svc_req *rqstp)
-{
-    return (send_flag_1_svc(*argp, rqstp));
+	return (reply_1_svc(argp->arg1, argp->arg2, argp->arg3, argp->arg4, rqstp));
 }
 
 static server_list *
@@ -65,6 +59,7 @@ _join_server_1 (join_server_1_argument *argp, struct svc_req *rqstp)
 {
 	return (join_server_1_svc(argp->arg1, argp->arg2, rqstp));
 }
+
 
 static void
 communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
@@ -84,19 +79,19 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 			return;
 
 		case POST:
-			_xdr_argument = (xdrproc_t) xdr_wrapstring;
+			_xdr_argument = (xdrproc_t) xdr_post_1_argument;
 			_xdr_result = (xdrproc_t) xdr_int;
 			local = (char *(*)(char *, struct svc_req *)) _post_1;
 			break;
 
 		case READ:
-			_xdr_argument = (xdrproc_t) xdr_void;
+			_xdr_argument = (xdrproc_t) xdr_read_1_argument;
 			_xdr_result = (xdrproc_t) xdr_wrapstring;
 			local = (char *(*)(char *, struct svc_req *)) _read_1;
 			break;
 
 		case CHOOSE:
-			_xdr_argument = (xdrproc_t) xdr_int;
+			_xdr_argument = (xdrproc_t) xdr_choose_1_argument;
 			_xdr_result = (xdrproc_t) xdr_ArticleContent;
 			local = (char *(*)(char *, struct svc_req *)) _choose_1;
 			break;
@@ -107,14 +102,7 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 			local = (char *(*)(char *, struct svc_req *)) _reply_1;
 			break;
 
-        case SEND_FLAG:
-            _xdr_argument = (xdrproc_t) xdr_int;
-            _xdr_result = (xdrproc_t) xdr_int;
-            local = (char *(*)(char *, struct svc_req *)) _send_flag_1;
-            break;
-
-
-        case GET_SERVER_LIST:
+		case GET_SERVER_LIST:
 			_xdr_argument = (xdrproc_t) xdr_void;
 			_xdr_result = (xdrproc_t) xdr_server_list;
 			local = (char *(*)(char *, struct svc_req *)) _get_server_list_1;
@@ -150,121 +138,118 @@ communicate_prog_1(struct svc_req *rqstp, register SVCXPRT *transp)
 
 
 /////////////////////////////peer client///////////////////////////
-int *
-post_1(char *arg1,  CLIENT *clnt)
-{
-	static int clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, POST,
-				   (xdrproc_t) xdr_wrapstring, (caddr_t) &arg1,
-				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+int *
+post_1(char *arg1, char *arg2, int arg3,  CLIENT *clnt)
+{
+    post_1_argument arg;
+    static int clnt_res;
+
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    arg.arg1 = arg1;
+    arg.arg2 = arg2;
+    arg.arg3 = arg3;
+    if (clnt_call (clnt, POST, (xdrproc_t) xdr_post_1_argument, (caddr_t) &arg,
+                   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
 
 char **
-read_1(CLIENT *clnt)
+read_1(char *arg1, int arg2,  CLIENT *clnt)
 {
-	static char *clnt_res;
+    read_1_argument arg;
+    static char *clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, READ, (xdrproc_t) xdr_void, (caddr_t) NULL,
-				   (xdrproc_t) xdr_wrapstring, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    arg.arg1 = arg1;
+    arg.arg2 = arg2;
+    if (clnt_call (clnt, READ, (xdrproc_t) xdr_read_1_argument, (caddr_t) &arg,
+                   (xdrproc_t) xdr_wrapstring, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
 
 ArticleContent *
-choose_1(int arg1,  CLIENT *clnt)
+choose_1(int arg1, char *arg2, int arg3,  CLIENT *clnt)
 {
-	static ArticleContent clnt_res;
+    choose_1_argument arg;
+    static ArticleContent clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, CHOOSE,
-				   (xdrproc_t) xdr_int, (caddr_t) &arg1,
-				   (xdrproc_t) xdr_ArticleContent, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    arg.arg1 = arg1;
+    arg.arg2 = arg2;
+    arg.arg3 = arg3;
+    if (clnt_call (clnt, CHOOSE, (xdrproc_t) xdr_choose_1_argument, (caddr_t) &arg,
+                   (xdrproc_t) xdr_ArticleContent, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
 
 int *
-reply_1(char *arg1, int arg2,  CLIENT *clnt)
+reply_1(char *arg1, int arg2, char *arg3, int arg4,  CLIENT *clnt)
 {
-	reply_1_argument arg;
-	static int clnt_res;
+    reply_1_argument arg;
+    static int clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	arg.arg1 = arg1;
-	arg.arg2 = arg2;
-	if (clnt_call (clnt, REPLY, (xdrproc_t) xdr_reply_1_argument, (caddr_t) &arg,
-				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-
-int *
-send_flag_1(int arg1,  CLIENT *clnt)
-{
-	static int clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, SEND_FLAG,
-				   (xdrproc_t) xdr_int, (caddr_t) &arg1,
-				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    arg.arg1 = arg1;
+    arg.arg2 = arg2;
+    arg.arg3 = arg3;
+    arg.arg4 = arg4;
+    if (clnt_call (clnt, REPLY, (xdrproc_t) xdr_reply_1_argument, (caddr_t) &arg,
+                   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
 
 server_list *
 get_server_list_1(CLIENT *clnt)
 {
-	static server_list clnt_res;
+    static server_list clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, GET_SERVER_LIST, (xdrproc_t) xdr_void, (caddr_t) NULL,
-				   (xdrproc_t) xdr_server_list, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    if (clnt_call (clnt, GET_SERVER_LIST, (xdrproc_t) xdr_void, (caddr_t) NULL,
+                   (xdrproc_t) xdr_server_list, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
 
 int *
 join_server_1(IP arg1, int arg2,  CLIENT *clnt)
 {
-	join_server_1_argument arg;
-	static int clnt_res;
+    join_server_1_argument arg;
+    static int clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	arg.arg1 = arg1;
-	arg.arg2 = arg2;
-	if (clnt_call (clnt, JOIN_SERVER, (xdrproc_t) xdr_join_server_1_argument, (caddr_t) &arg,
-				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
-				   TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
+    memset((char *)&clnt_res, 0, sizeof(clnt_res));
+    arg.arg1 = arg1;
+    arg.arg2 = arg2;
+    if (clnt_call (clnt, JOIN_SERVER, (xdrproc_t) xdr_join_server_1_argument, (caddr_t) &arg,
+                   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
+                   TIMEOUT) != RPC_SUCCESS) {
+        return (NULL);
+    }
+    return (&clnt_res);
 }
+
 /////////////////////////////peer client///////////////////////////
 
 int
 main (int argc, char **argv)
 {
 
-	if (argc < 5) {
-		std::cout << "Usage: ./serverside server_ip server_port coordinator_ip coordinator_port\n";
+	if (argc < 6) {
+		std::cout << "Usage: ./serverside server_ip server_port coordinator_ip coordinator_port is_quorum\n";
 		exit(1);
 	}
 
@@ -272,8 +257,9 @@ main (int argc, char **argv)
 	int server_port = stoi(argv[2]);
 	string coordinator_ip((char *) argv[3], strlen((char *)argv[3]));
 	int coordinator_port = stoi(argv[4]);
+    int is_quorum = stoi(argv[5]);
 
-	if(server_port == coordinator_port){
+    if(server_port == coordinator_port){
 		cout << "server_port needs to be different from coordinator port" << endl;
 		exit(1);
 	}
@@ -281,7 +267,7 @@ main (int argc, char **argv)
 	cout << server_ip << " " << server_port << endl;
 
 
-	PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port);
+	PeerClient pclient(server_ip, server_port, coordinator_ip, coordinator_port, is_quorum);
 
 
 	register SVCXPRT *transp;

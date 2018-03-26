@@ -12,6 +12,8 @@ class Client {
 
 public:
     CLIENT * clnt;
+    char *self_ip;
+    int self_port;
     void post(char * content);
 
     void read();
@@ -38,7 +40,7 @@ public:
 };
 
 void Client::post(char * content) {
-    auto output = post_1(content, clnt);
+    auto output = post_1(content, self_ip, self_port, clnt);
     if (*output == 0) {
         clnt_perror(clnt, "Cannot post");
     } else if (*output == -1){
@@ -49,7 +51,7 @@ void Client::post(char * content) {
 }
 
 void Client::read() {
-    auto output = read_1(clnt);
+    auto output = read_1(self_ip, self_port, clnt);
     if (output == NULL) {
         clnt_perror(clnt, "Cannot read");
     } else {
@@ -58,7 +60,7 @@ void Client::read() {
 }
 
 void Client::choose(int index) {
-    auto output = choose_1(index, clnt);
+    auto output = choose_1(index, self_ip, self_port, clnt);
     if (output->index == 0) {
         std::cout << "\nCannot choose article with id " << index << std::endl;
     } else {
@@ -67,7 +69,7 @@ void Client::choose(int index) {
 }
 
 void Client::reply(char * content, int index) {
-    auto output = reply_1(content, index, clnt);
+    auto output = reply_1(content, index, self_ip, self_port, clnt);
     if (*output == 0) {
         clnt_perror(clnt, "Cannot reply");
     } else if (*output == -1){
@@ -92,17 +94,20 @@ void Client::get_server_list() {
 
 int main(int argc, char *argv[]) {
 
-    if (argc < 3) {
-        std::cout << "Usage: ./clientside client_ip server_ip\n";
+    if (argc < 4) {
+        std::cout << "Usage: ./clientside client_ip server_ip client_port \n";
         exit(1);
     }
     char *client_ip = (char *) argv[1];
     char *serv_ip = (char *) argv[2];
+    int self_port = stoi(argv[3]);
     char func[1];
     int func_number;
     //char article_string[MAX_ARTICLE_LENGTH];
 
     Client conn(client_ip, serv_ip);
+    conn.self_ip = client_ip;
+    conn.self_port = self_port;
 
     while (1) {
         std::cout << "Please enter what function you want to perform [1-5]:\n"

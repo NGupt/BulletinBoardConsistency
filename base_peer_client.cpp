@@ -262,22 +262,26 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
             exit(1);
         }
 
+        cout << "received " << vote_req <<endl;
+
         int pos = 0;
         std::string delimiter = ";";
         std::string first_command = "";
 
         string req(vote_req, strlen(vote_req));
         pos = req.find(delimiter);
-        first_command = req.substr(0, pos);   //returning line
+        first_command = req.substr(0, pos);
+        cout << "first_command " << first_command <<endl;
+
         req = req.substr(pos+1);
         if((strcmp(first_command.c_str(),"READ") == 0)||(strcmp(first_command.c_str(),"WRITE") == 0)) {
-            if (s->readlock->try_lock()) {
+            if (s->readlock.try_lock()) {
                 printf("INFO: Read-locking %d\n", s->articlePool.count);
                 strcat(vote_req, to_string(s->articlePool.count).c_str());
                 //resend the received data to check if server is up
                 cout << "sending received req along with version number " << vote_req << endl;
 
-                if ((sendto(s->insert_listen_fd, vote_req, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+                if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) ==
                     -1) {
                     close(s->insert_listen_fd);
                     s->insert_listen_fd = -1;
@@ -285,33 +289,48 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
                     throw;
                 }
             }
-            s->readlock->unlock(); //clear the lock
+            s->readlock.unlock(); //clear the lock
         } else if (strcmp(first_command.c_str(),"FWD_REQ") == 0) {
             pos = req.find(delimiter);
-            string client_ip = req.substr(0, pos);   //returning line
-            req = req.substr(pos+1);
+            string client_ip = req.substr(0, pos);
+            req = req.substr(pos + 1);
             pos = req.find(delimiter);
-            int client_port = atoi(req.substr(0, pos).c_str());   //returning line
-            string pool_content = req.substr(pos+1);
+            int client_port = atoi(req.substr(0, pos).c_str());
+            string req_type = req.substr(pos + 1);
+            string return_content = "";
+            int choose_index = 0;
+            if (strcmp(req_type.c_str(), "READ") == 0) {
+                req = req.substr(pos + 1);
+                pos = req.find(delimiter);
+                return_content = req.substr(pos + 1);
+            }
+            else if(strcmp(req_type.c_str(),"CHOOSE") == 0){
+//                req = req.substr(pos+1);
+//                pos = req.find(delimiter);
+//                choose_index = atoi(req.substr(0, pos).c_str());   //returning line
+//                req = req.substr(pos+1);
+//                pos = req.find(delimiter);
+//                return_content = req.substr(pos+1);
+            }
             //TODO: create client socket and send to that
             int client_sock = -1;
-            if (s->readlock->try_lock()) {
+            if (s->readlock.try_lock()) {
                 //resend the received data to check if server is up
                 cout << "sending received pool content to client " << client_ip << ":" << client_port << endl;
-                if ((sendto(client_sock, pool_content.c_str(), MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+                if ((sendto(client_sock, return_content.c_str(), return_content.length(), 0, (struct sockaddr *) &remote_addr, slen)) ==
                     -1) {
                     close(client_sock);
                     perror("Error: acknowledging the received string");
                     throw;
                 }
             }
-            s->readlock->unlock(); //clear the lock
+            s->readlock.unlock(); //clear the lock
             close(client_sock);
         } else if (strcmp(first_command.c_str(),"POOL") == 0){
-            if (s->readlock->try_lock()) {
+            if (s->readlock.try_lock()) {
                 string pool_content = s->articlePool.read();
                 cout << "returning latest pool content to coordinator " << pool_content << endl;
-                if ((sendto(s->insert_listen_fd, pool_content.c_str(), MAXPOOLLENGTH, 0,
+                if ((sendto(s->insert_listen_fd, pool_content.c_str(), pool_content.length(), 0,
                             (struct sockaddr *) &remote_addr, slen)) ==
                     -1) {
                     close(s->insert_listen_fd);
@@ -320,18 +339,36 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
                     throw;
                 }
             }
-            s->readlock->unlock(); //clear the lock
+            s->readlock.unlock(); //clear the lock
         } else if (strcmp(first_command.c_str(),"SYNCHRONIZE") == 0){
-            if (s->writelock->try_lock()) {
-                string content = req.substr(pos+1);
-                s->articlePool.releaseAll();
+            if (s->writelock.try_lock()) {
+                string content = req;
+                cout << "content: " << content << endl;
+
+                //s->articlePool.releaseAll();
                 char *pool_content = new char[content.length() + 1];
                 std::strcpy(pool_content, content.c_str());
                 s->decode_articles(pool_content); //will decode and save the pool content to pool of server
+                free(pool_content);
             }
-            s->writelock->unlock(); //clear the lock
+            s->writelock.unlock(); //clear the lock
             //confirming back to coordinator that synchronization on this server happened
-            if ((sendto(s->insert_listen_fd, vote_req, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, slen)) ==
+            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) ==
+                -1) {
+                close(s->insert_listen_fd);
+                s->insert_listen_fd = -1;
+                perror("Error: acknowledging the received string");
+                throw;
+            }
+        } else if (strcmp(first_command.c_str(),"UPDATE") == 0){
+            if (s->writelock.try_lock()) {
+                string content = req;//.substr(pos+1);
+                s->articlePool.post(content);
+                cout << "content: " << content << endl;
+            }
+            s->writelock.unlock(); //clear the lock
+            //confirming back to coordinator that synchronization on this server happened
+            if ((sendto(s->insert_listen_fd, vote_req, strlen(vote_req), 0, (struct sockaddr *) &remote_addr, slen)) ==
                 -1) {
                 close(s->insert_listen_fd);
                 s->insert_listen_fd = -1;
@@ -342,8 +379,7 @@ void PeerClient::udp_recv_vote_req(PeerClient *s, string r_ip, int port){
     }
 }
 
-PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port) {
-    bool Quorum = true;
+PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinator_port, int isQuorum) {
     this->server_ip = ip;
     this->server_port = port;
     this->coordinator_ip = coordinator_ip;
@@ -358,7 +394,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         clnt_pcreateerror(c_ip);
         exit(1);
     }
-    if(!Quorum) {
+    if(isQuorum == 0) {
         if (isCoordinator(o_ip)) {
             cout << "is coordinator" << endl;
             num_confirmations = 0;
@@ -374,8 +410,7 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
             subscribers.push_back(NULL);
             subscriber_lock.unlock();
         } else {
-            join_server(o_ip,
-                        port);  // Our coordinator is not part of client accessible server list in case of quorum consistency
+            join_server(o_ip, port);  // Our coordinator is not part of client accessible server list in case of quorum consistency
             get_server_list();
         }
     }
@@ -407,12 +442,12 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         perror("binding socket");
         throw;
     }
-    if(!Quorum) {
+    if(isQuorum == 0) {
         if (!isCoordinator(o_ip)) {
             get_server_list();
             //if server joined later, then get the latest article copy
             if (articlePool.read() == "") {
-                char *temp_articles = *read_1(pclnt);
+                char *temp_articles = *read_1(client_ip, client_port, pclnt);
                 // cout << "empty article pool, output after update:\n" << temp_articles << endl;
                 decode_articles(temp_articles);
                 cout << "existing articles were\n" << articlePool.read() << endl;
@@ -425,12 +460,12 @@ PeerClient::PeerClient(string ip, int port, string coordinator_ip, int coordinat
         if (!isCoordinator(o_ip)) {
             get_server_list();
             //if server joined later, then get the latest article copy
-            if (articlePool.read() == "") {
-                char *temp_articles = *read_1(pclnt);
-                // cout << "empty article pool, output after update:\n" << temp_articles << endl;
-                decode_articles(temp_articles);
-                cout << "existing articles were\n" << articlePool.read() << endl;
-            }
+//            if (articlePool.read() == "") {
+//                char *temp_articles = *read_1(client_ip, client_port,pclnt);
+//                // cout << "empty article pool, output after update:\n" << temp_articles << endl;
+//                decode_articles(temp_articles);
+//                cout << "existing articles were\n" << articlePool.read() << endl;
+//            }
             //create listening udp thread
             insert_listen_thread = thread(udp_recv_vote_req, this, c_ip, server_port);
             insert_listen_thread.detach();
@@ -452,5 +487,17 @@ PeerClient::~PeerClient() {
     if(update_thread.joinable()){
         update_thread.join();
     }
+    if(post_thread.joinable()){
+        post_thread.join();
+    }
     close(this->insert_listen_fd);
+}
+
+void PeerClient::msleep_rand(int from_ms, int to_ms) {
+    int sleep_ms = from_ms + (rand() % (to_ms - from_ms));
+    usleep(sleep_ms * 1000);
+}
+
+void PeerClient::msleep_rand(int to_ms) {
+    msleep_rand(0, to_ms);
 }

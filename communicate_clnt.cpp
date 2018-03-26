@@ -10,13 +10,16 @@
 static struct timeval TIMEOUT = { 25, 0 };
 
 int *
-post_1(char *arg1,  CLIENT *clnt)
+post_1(char *arg1, char *arg2, int arg3,  CLIENT *clnt)
 {
+	post_1_argument arg;
 	static int clnt_res;
 
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, POST,
-				   (xdrproc_t) xdr_wrapstring, (caddr_t) &arg1,
+	arg.arg1 = arg1;
+	arg.arg2 = arg2;
+	arg.arg3 = arg3;
+	if (clnt_call (clnt, POST, (xdrproc_t) xdr_post_1_argument, (caddr_t) &arg,
 				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
 				   TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
@@ -25,12 +28,15 @@ post_1(char *arg1,  CLIENT *clnt)
 }
 
 char **
-read_1(CLIENT *clnt)
+read_1(char *arg1, int arg2,  CLIENT *clnt)
 {
+	read_1_argument arg;
 	static char *clnt_res;
 
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, READ, (xdrproc_t) xdr_void, (caddr_t) NULL,
+	arg.arg1 = arg1;
+	arg.arg2 = arg2;
+	if (clnt_call (clnt, READ, (xdrproc_t) xdr_read_1_argument, (caddr_t) &arg,
 				   (xdrproc_t) xdr_wrapstring, (caddr_t) &clnt_res,
 				   TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
@@ -39,13 +45,16 @@ read_1(CLIENT *clnt)
 }
 
 ArticleContent *
-choose_1(int arg1,  CLIENT *clnt)
+choose_1(int arg1, char *arg2, int arg3,  CLIENT *clnt)
 {
+	choose_1_argument arg;
 	static ArticleContent clnt_res;
 
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
-	if (clnt_call (clnt, CHOOSE,
-				   (xdrproc_t) xdr_int, (caddr_t) &arg1,
+	arg.arg1 = arg1;
+	arg.arg2 = arg2;
+	arg.arg3 = arg3;
+	if (clnt_call (clnt, CHOOSE, (xdrproc_t) xdr_choose_1_argument, (caddr_t) &arg,
 				   (xdrproc_t) xdr_ArticleContent, (caddr_t) &clnt_res,
 				   TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
@@ -54,7 +63,7 @@ choose_1(int arg1,  CLIENT *clnt)
 }
 
 int *
-reply_1(char *arg1, int arg2,  CLIENT *clnt)
+reply_1(char *arg1, int arg2, char *arg3, int arg4,  CLIENT *clnt)
 {
 	reply_1_argument arg;
 	static int clnt_res;
@@ -62,6 +71,8 @@ reply_1(char *arg1, int arg2,  CLIENT *clnt)
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
 	arg.arg1 = arg1;
 	arg.arg2 = arg2;
+	arg.arg3 = arg3;
+	arg.arg4 = arg4;
 	if (clnt_call (clnt, REPLY, (xdrproc_t) xdr_reply_1_argument, (caddr_t) &arg,
 				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
 				   TIMEOUT) != RPC_SUCCESS) {
@@ -78,6 +89,23 @@ get_server_list_1(CLIENT *clnt)
 	memset((char *)&clnt_res, 0, sizeof(clnt_res));
 	if (clnt_call (clnt, GET_SERVER_LIST, (xdrproc_t) xdr_void, (caddr_t) NULL,
 				   (xdrproc_t) xdr_server_list, (caddr_t) &clnt_res,
+				   TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+int *
+join_server_1(IP arg1, int arg2,  CLIENT *clnt)
+{
+	join_server_1_argument arg;
+	static int clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	arg.arg1 = arg1;
+	arg.arg2 = arg2;
+	if (clnt_call (clnt, JOIN_SERVER, (xdrproc_t) xdr_join_server_1_argument, (caddr_t) &arg,
+				   (xdrproc_t) xdr_int, (caddr_t) &clnt_res,
 				   TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}

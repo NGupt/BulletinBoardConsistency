@@ -59,9 +59,31 @@ struct ArticlePoolStruct {
 };
 typedef struct ArticlePoolStruct ArticlePoolStruct;
 
+struct post_1_argument {
+	char *arg1;
+	char *arg2;
+	int arg3;
+};
+typedef struct post_1_argument post_1_argument;
+
+struct read_1_argument {
+	char *arg1;
+	int arg2;
+};
+typedef struct read_1_argument read_1_argument;
+
+struct choose_1_argument {
+	int arg1;
+	char *arg2;
+	int arg3;
+};
+typedef struct choose_1_argument choose_1_argument;
+
 struct reply_1_argument {
 	char *arg1;
 	int arg2;
+	char *arg3;
+	int arg4;
 };
 typedef struct reply_1_argument reply_1_argument;
 
@@ -76,24 +98,21 @@ typedef struct join_server_1_argument join_server_1_argument;
 
 #if defined(__STDC__) || defined(__cplusplus)
 #define POST 1
-extern  int * post_1(char *, CLIENT *);
-extern  int * post_1_svc(char *, struct svc_req *);
+extern  int * post_1(char *, char *, int , CLIENT *);
+extern  int * post_1_svc(char *, char *, int , struct svc_req *);
 #define READ 2
-extern  char ** read_1(CLIENT *);
-extern  char ** read_1_svc(struct svc_req *);
+extern  char ** read_1(char *, int , CLIENT *);
+extern  char ** read_1_svc(char *, int , struct svc_req *);
 #define CHOOSE 3
-extern  ArticleContent * choose_1(int , CLIENT *);
-extern  ArticleContent * choose_1_svc(int , struct svc_req *);
+extern  ArticleContent * choose_1(int , char *, int , CLIENT *);
+extern  ArticleContent * choose_1_svc(int , char *, int , struct svc_req *);
 #define REPLY 4
-extern  int * reply_1(char *, int , CLIENT *);
-extern  int * reply_1_svc(char *, int , struct svc_req *);
-#define SEND_FLAG 5
-extern  int * send_flag_1(int , CLIENT *);
-extern  int * send_flag_1_svc(int , struct svc_req *);
-#define GET_SERVER_LIST 9
+extern  int * reply_1(char *, int , char *, int , CLIENT *);
+extern  int * reply_1_svc(char *, int , char *, int , struct svc_req *);
+#define GET_SERVER_LIST 5
 extern  server_list * get_server_list_1(CLIENT *);
 extern  server_list * get_server_list_1_svc(struct svc_req *);
-#define JOIN_SERVER 10
+#define JOIN_SERVER 6
 extern  int * join_server_1(IP , int , CLIENT *);
 extern  int * join_server_1_svc(IP , int , struct svc_req *);
 extern int communicate_prog_1_freeresult (SVCXPRT *, xdrproc_t, caddr_t);
@@ -111,13 +130,10 @@ extern  ArticleContent * choose_1_svc();
 #define REPLY 4
 extern  int * reply_1();
 extern  int * reply_1_svc();
-#define SEND_FLAG 5
-extern  int * send_flag_1();
-extern  int * send_flag_1_svc();
-#define GET_SERVER_LIST 9
+#define GET_SERVER_LIST 5
 extern  server_list * get_server_list_1();
 extern  server_list * get_server_list_1_svc();
-#define JOIN_SERVER 10
+#define JOIN_SERVER 6
 extern  int * join_server_1();
 extern  int * join_server_1_svc();
 extern int communicate_prog_1_freeresult ();
@@ -134,6 +150,9 @@ extern  bool_t xdr_server_list (XDR *, server_list*);
 extern  bool_t xdr_ArticleStruct (XDR *, ArticleStruct*);
 extern  bool_t xdr_array_article (XDR *, array_article*);
 extern  bool_t xdr_ArticlePoolStruct (XDR *, ArticlePoolStruct*);
+extern  bool_t xdr_post_1_argument (XDR *, post_1_argument*);
+extern  bool_t xdr_read_1_argument (XDR *, read_1_argument*);
+extern  bool_t xdr_choose_1_argument (XDR *, choose_1_argument*);
 extern  bool_t xdr_reply_1_argument (XDR *, reply_1_argument*);
 extern  bool_t xdr_join_server_1_argument (XDR *, join_server_1_argument*);
 
@@ -146,6 +165,9 @@ extern bool_t xdr_server_list ();
 extern bool_t xdr_ArticleStruct ();
 extern bool_t xdr_array_article ();
 extern bool_t xdr_ArticlePoolStruct ();
+extern bool_t xdr_post_1_argument ();
+extern bool_t xdr_read_1_argument ();
+extern bool_t xdr_choose_1_argument ();
 extern bool_t xdr_reply_1_argument ();
 extern bool_t xdr_join_server_1_argument ();
 

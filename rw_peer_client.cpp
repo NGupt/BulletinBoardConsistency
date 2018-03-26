@@ -12,7 +12,7 @@ int PeerClient::post(char *content) {
         update_thread.detach();
         return output;
     } else {
-        update_thread = thread(post_1, content, pclnt);
+        update_thread = thread(post_1, content, client_ip, 0, pclnt);
         update_thread.detach();
         if (output == 0) {
             clnt_perror(pclnt, "Cannot post");
@@ -33,7 +33,7 @@ int PeerClient::reply(char *content, int index) {
         update_thread.detach();
         return output;
     } else {
-        update_thread = thread(reply_1, content, index, pclnt);
+        update_thread = thread(reply_1, content, index, client_ip, 0, pclnt);
         update_thread.detach();
         if (output == 0) {
             clnt_perror(pclnt, "Cannot reply");
@@ -67,15 +67,6 @@ ArticleContent PeerClient::choose(int index) {
 //get the current articlePool
 ArticlePoolStruct PeerClient::getLocalArticle() {
     return articlePool.getArticle();
-}
-
-
-int PeerClient::send_flag(int flag) {
-    auto output = send_flag_1(flag, pclnt);
-    if (output == (int *) NULL) {
-        clnt_perror (pclnt, "call failed");
-    }
-    return *output;
 }
 
 server_list PeerClient::get_server_list() {

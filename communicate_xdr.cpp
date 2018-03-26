@@ -100,11 +100,49 @@ xdr_ArticlePoolStruct (XDR *xdrs, ArticlePoolStruct *objp)
 }
 
 bool_t
+xdr_post_1_argument (XDR *xdrs, post_1_argument *objp)
+{
+    if (!xdr_string (xdrs, &objp->arg1, ~0))
+        return FALSE;
+    if (!xdr_string (xdrs, &objp->arg2, ~0))
+        return FALSE;
+    if (!xdr_int (xdrs, &objp->arg3))
+        return FALSE;
+    return TRUE;
+}
+
+bool_t
+xdr_read_1_argument (XDR *xdrs, read_1_argument *objp)
+{
+    if (!xdr_string (xdrs, &objp->arg1, ~0))
+        return FALSE;
+    if (!xdr_int (xdrs, &objp->arg2))
+        return FALSE;
+    return TRUE;
+}
+
+bool_t
+xdr_choose_1_argument (XDR *xdrs, choose_1_argument *objp)
+{
+    if (!xdr_int (xdrs, &objp->arg1))
+        return FALSE;
+    if (!xdr_string (xdrs, &objp->arg2, ~0))
+        return FALSE;
+    if (!xdr_int (xdrs, &objp->arg3))
+        return FALSE;
+    return TRUE;
+}
+
+bool_t
 xdr_reply_1_argument (XDR *xdrs, reply_1_argument *objp)
 {
     if (!xdr_string (xdrs, &objp->arg1, ~0))
         return FALSE;
     if (!xdr_int (xdrs, &objp->arg2))
+        return FALSE;
+    if (!xdr_string (xdrs, &objp->arg3, ~0))
+        return FALSE;
+    if (!xdr_int (xdrs, &objp->arg4))
         return FALSE;
     return TRUE;
 }
