@@ -19,10 +19,10 @@ class Client {
 
 public:
     CLIENT * clnt;
+    std::thread udp_thread;
+    int sock = -1;
     char *self_ip;
     int self_port;
-    std::thread udp_thread;
-
     void post(char * content);
 
     void read();
@@ -33,9 +33,11 @@ public:
 
     void get_server_list();
 
-    static void listen_for_article(char *own_ip, int port);
+    static void listen_for_article(char *own_ip, int port, int sock);
 
-    Client(char *ip, char *serv_ip) {
+    Client(char *ip, char *serv_ip, int port) {
+        strcpy(self_ip, ip);
+        self_port = port;
         clnt = clnt_create(serv_ip, COMMUNICATE_PROG, COMMUNICATE_VERSION, "udp");
         if (clnt == NULL) {
             clnt_pcreateerror(serv_ip);
@@ -43,8 +45,28 @@ public:
         }
         std::cout << ".....Completed client creation.....\n";
         //TODO: get server_ip - change self_ip to serv_ip
-        udp_thread = std::thread(listen_for_article, self_ip, self_port);
+        struct sockaddr_in client_addr;
+        if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+            perror("socket()");
+            exit(1);
+        }
+        int optval = 1;
+        setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+        memset(&client_addr, 0, sizeof(client_addr));
+        client_addr.sin_family = AF_INET;
+        client_addr.sin_addr.s_addr= htonl(INADDR_ANY);
+        client_addr.sin_port = htons(self_port);
+
+        if (bind(sock, (struct sockaddr*)&client_addr, sizeof(client_addr)) == -1)     {
+            close(sock);
+            perror("binding socket");
+        }
+        udp_thread = std::thread(listen_for_article, serv_ip, port, sock);
+        std::cout << ".....before detach.....\n";
         udp_thread.detach();
+//        if(udp_thread.joinable()){
+//            udp_thread.join();
+//        }
     }
 
     ~Client() {
@@ -57,46 +79,31 @@ public:
     }
 };
 
-void Client::listen_for_article(char *serv_ip, int port) {
-    struct sockaddr_in si_other, client_addr;
-    int sock = -1;
-    socklen_t slen = sizeof(si_other);
-    int optval = 1;
+void Client::listen_for_article(char *serv_ip, int port, int sock) {
+    struct sockaddr_in remote_addr;
+    socklen_t slen = sizeof(remote_addr);
 
-    if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
-        perror("socket()");
+    memset((char *) &remote_addr, 0, sizeof(remote_addr));
+    remote_addr.sin_family = AF_INET;
+    remote_addr.sin_port = htons(port);
+    if (inet_aton(serv_ip, &remote_addr.sin_addr) == 0) {
+        perror("inet_aton failed");
         exit(1);
     }
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const void *) &optval, sizeof(int));
+    free(serv_ip);
 
-    memset((char *) &si_other, 0, sizeof(si_other));
-    si_other.sin_family = AF_INET;
-    si_other.sin_port = htons(port);
-
-    if (inet_aton(serv_ip, &si_other.sin_addr) == 0) {
-        fprintf(stderr, "inet_aton failed\n");
-        exit(1);
-    }
-
-    bzero((char *) &client_addr, sizeof(client_addr));
-    client_addr.sin_family = AF_INET;
-    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    client_addr.sin_port = htons((unsigned short) port);
-    if (bind(sock, (struct sockaddr *) &client_addr, sizeof(client_addr)) < 0) {
-        fprintf(stderr, "could not bind \n");
-        close(sock);
-        exit(1);
-    }
     char article[MAXPOOLLENGTH];
     // Clear the buffer by filling null, it might have previously received data
     memset(article, '\0', MAXPOOLLENGTH);
 
-    // Try to receive some data; This is a blocking call
-    if (recvfrom(sock, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &si_other, &slen) == -1) {
-        perror("recvfrom()");
-        exit(1);
+    while(1) {
+        // Try to receive some data; This is a blocking call
+        if (recvfrom(sock, article, MAXPOOLLENGTH, 0, (struct sockaddr *) &remote_addr, &slen) == -1) {
+            perror("recvfrom()");
+            exit(1);
+        }
+        std::cout << "..... received....... \n" << article << "\n.....\n";
     }
-    std::cout << "..... received....... \n" << article << "\n.....\n";
 }
 
 void Client::post(char * content) {
@@ -165,9 +172,7 @@ int main(int argc, char *argv[]) {
     int func_number;
     //char article_string[MAX_ARTICLE_LENGTH];
 
-    Client conn(client_ip, serv_ip);
-    conn.self_ip = client_ip;
-    conn.self_port = self_port;
+    Client conn(client_ip, serv_ip, self_port);
 
     while (1) {
         std::cout << "Please enter what function you want to perform [1-5]:\n"
