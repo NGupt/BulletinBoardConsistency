@@ -3,10 +3,13 @@
 //
 
 #include "Client.h"
+#include <iostream>
 #include "communication.h"
 #include <cstdio>
 #include <unistd.h>
 #include <string.h>
+
+using namespace std;
 
 Client::Client(const char *host, int port)  {
     char hostname[256];
@@ -54,4 +57,26 @@ int Client::clntClose()  {
     }
 
     return 0;
+}
+
+int main(int argc, char *argv[]){
+  if (argc < 4) {
+      std::cout << "Usage: ./clientside server_ip client_port msg\n";
+      exit(1);
+  }
+  char *serv_ip = (char *) argv[1];
+  int self_port = stoi(argv[2]);
+  char *msg = (char *) argv[3];
+
+  char *return_msg;
+  //char article_string[MAX_ARTICLE_LENGTH];
+
+  Client conn(serv_ip, self_port);
+  conn.clntOpen();
+  conn.clntWrite(msg, strlen(msg));
+  cout << "writing " << msg << "\n";
+  conn.clntRead(&return_msg);
+  cout << "read " << return_msg << "\n";
+  conn.clntClose();
+  return 0;
 }

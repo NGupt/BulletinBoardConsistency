@@ -9,6 +9,8 @@
 #include <string.h>
 #include <algorithm>
 #include <netinet/in.h>
+#include <iostream>
+using namespace std;
 using std::vector;
 
 Server::Server(int port, int num_conns)
@@ -42,13 +44,13 @@ int Server::servListen()
         printf("ERROR: Listening failed\n");
         return -1;
     }
+    servAccept();
     return 0;
 }
 
 int Server::servAccept()
 {
     socklen_t clilen = sizeof(cli_addr);
-    printf("Accepting connection\n");
 
     int newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0)
@@ -69,6 +71,7 @@ int Server::servAccept()
         }
     }
     mtx.unlock();
+    printf("Accepting connection\n");
 
     return cli_num;
 }
@@ -147,6 +150,32 @@ int Server::getNumActiveClients() const
 }
 
 int Server::getNumConns() const
-{
+{ //gives max_connections allowed
     return num_conns;
+}
+
+
+int main(int argc, char *argv[]){
+  if (argc < 3) {
+      std::cout << "Usage: ./serverside port max_connections \n";
+      exit(1);
+  }
+  int self_port = stoi(argv[1]);
+  int max_conn = stoi(argv[2]);
+  char *msg;
+  char *msg2;
+  //char article_string[MAX_ARTICLE_LENGTH];
+
+  Server serv(self_port, max_conn);
+  while (1) {
+
+  serv.servListen();
+  serv.servRead(0, &msg);
+  serv.servRead(1, &msg2);
+  serv.servWrite(0, msg, strlen(msg));
+  cout << "#activeClients " << serv.getNumActiveClients() << "\n";
+  serv.servWrite(1, msg2, strlen(msg2));
+  cout << "#activeClients " << serv.getNumActiveClients() << "\n";
+}
+  return 0;
 }
